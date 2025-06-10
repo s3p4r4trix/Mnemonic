@@ -10,6 +10,11 @@
   --button-border-color: #007bff;
   --button-bg-color: #ffffff;
   --button-text-color: #007bff;
+  --tile-hover-bg: #d5d5d5;
+  --tile-selected-bg: #64b5f6;
+  --tile-selected-border: #1976d2;
+  --tile-correct-selected-bg: #81c784;
+  --tile-correct-selected-border: #388e3c;
 }
 
 .dark-theme {
@@ -22,6 +27,11 @@
   --button-border-color: #bb86fc;
   --button-bg-color: #121212;
   --button-text-color: #bb86fc;
+  --tile-hover-bg: #424242;
+  --tile-selected-bg: #0277bd;
+  --tile-selected-border: #01579b;
+  --tile-correct-selected-bg: #2e7d32;
+  --tile-correct-selected-border: #1b5e20;
 }
 
 body {

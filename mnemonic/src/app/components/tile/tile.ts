@@ -34,7 +34,7 @@ import {GameService, Tile} from "../../services/game.service";
       box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
     }
     .tile:hover {
-      background-color: #d5d5d5;
+      background-color: var(--tile-hover-bg);
       transform: translateY(-2px); /* Slight lift on hover */
     }
     .tile.lit {
@@ -42,14 +42,14 @@ import {GameService, Tile} from "../../services/game.service";
       box-shadow: 0 0 15px var(--tile-lit-bg);
     }
     .tile.selected-by-player {
-      background-color: #64b5f6; /* Light blue for selected by player */
-      border-color: #1976d2;
+      background-color: var(--tile-selected-bg); /* Light blue for selected by player */
+      border-color: var(--tile-selected-border);
     }
     /* Optional: Style for when a tile was correctly part of the revealed sequence AND selected by player */
     /* This might be shown briefly or if game logic changes to show feedback */
     .tile.selected-by-player.lit { /* If it was a correct tile and player selected it */
-      background-color: #81c784; /* Green for correct and selected */
-      border-color: #388e3c;
+      background-color: var(--tile-correct-selected-bg); /* Green for correct and selected */
+      border-color: var(--tile-correct-selected-border);
     }
     /* Style for a tile that was selected by player but was NOT in the sequence (a mistake) */
     /* This would only be visible if the game didnt end immediately */

@@ -1,5 +1,5 @@
 <div class="game-area">
-  <h1>Mnemonic Trainer</h1>
+  <h1 class="game-title">Mnemonic Trainer</h1>
   <div class="stats">
     <p>Level: {{ gameService.currentLevel() }}</p>
     <p>Score: {{ gameService.score() }}</p>
@@ -32,7 +32,9 @@
   }
   @if (gameService.gameState() === 'over') {
     <div class="message game-over">
-      Game Over! Final Score: {{ gameService.score() }}
+      <span class="game-over-text">Game Over!</span>
+      <span class="final-score-label">Final Score:</span>
+      <span class="final-score-value">{{ gameService.score() }}</span>
     </div>
   }
 
