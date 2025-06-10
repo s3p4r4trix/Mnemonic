@@ -1,7 +1,7 @@
-import { Component, inject, OnInit, OnDestroy, signal, effect } from "@angular/core";
-import { GameService } from "../../services/game.service";
-import { GridComponent } from "../grid/grid";
-import { CommonModule } from "@angular/common";
+import {Component, effect, inject, OnDestroy, OnInit, signal} from "@angular/core";
+import {GameService} from "../../services/game.service";
+import {GridComponent} from "../grid/grid";
+import {CommonModule} from "@angular/common";
 
 @Component({
   selector: "app-game",
@@ -14,11 +14,11 @@ export class GameComponent implements OnInit, OnDestroy {
   gameService = inject(GameService);
   message = signal<string>(""); // For temporary messages like "Correct!" or "Wrong Tile!"
 
-  private effectRef: any;
+  #effectRef: any;
 
   constructor() {
     // Effect to manage sequence display
-    this.effectRef = effect(() => {
+    this.#effectRef = effect(() => {
       const gameState = this.gameService.gameState();
       if (gameState === "sequence") {
         this.displaySequence();
@@ -48,18 +48,18 @@ export class GameComponent implements OnInit, OnDestroy {
       this.gameService.tiles.update(tiles =>
         tiles.map(t => (t.id === tileId ? { ...t, lit: true } : t))
       );
-      await this.delay(700); // Time tile is lit during sequence
+      await this.#delay(700); // Time tile is lit during sequence
       this.gameService.tiles.update(tiles =>
         tiles.map(t => (t.id === tileId ? { ...t, lit: false } : t))
       );
-      await this.delay(300); // Time between tiles
+      await this.#delay(300); // Time between tiles
     }
 
     // All tiles in sequence light up together for 1 second
     this.gameService.tiles.update(tiles =>
       tiles.map(t => (sequence.includes(t.id) ? { ...t, lit: true } : t))
     );
-    await this.delay(1000); // Hold all lit tiles
+    await this.#delay(1000); // Hold all lit tiles
 
     // Then turn off all tiles
     this.gameService.tiles.update(tiles => tiles.map(t => ({ ...t, lit: false })));
@@ -67,13 +67,13 @@ export class GameComponent implements OnInit, OnDestroy {
     this.gameService.gameState.set("input");
   }
 
-  private delay(ms: number): Promise<void> {
+  #delay(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
   ngOnDestroy(): void {
-    if (this.effectRef) {
-      this.effectRef.destroy();
+    if (this.#effectRef) {
+      this.#effectRef.destroy();
     }
   }
 }

@@ -1,5 +1,5 @@
-import { Component, input, output, inject } from "@angular/core"; // Added inject
-import { GameService, Tile } from "../../services/game.service";
+import {Component, inject, input, output} from "@angular/core"; // Added inject
+import {GameService, Tile} from "../../services/game.service";
 
 @Component({
   selector: "app-tile",
@@ -23,7 +23,7 @@ import { GameService, Tile } from "../../services/game.service";
     .tile {
       width: 80px;
       height: 80px;
-      background-color: #e0e0e0; /* Lighter default */
+      background-color: var(--tile-bg); /* Lighter default */
       border: 1px solid #bdbdbd;
       border-radius: 8px; /* Rounded corners */
       display: flex;
@@ -38,8 +38,8 @@ import { GameService, Tile } from "../../services/game.service";
       transform: translateY(-2px); /* Slight lift on hover */
     }
     .tile.lit {
-      background-color: #ffeb3b; /* Bright yellow for lit */
-      box-shadow: 0 0 15px #ffeb3b;
+      background-color: var(--tile-lit-bg); /* Bright yellow for lit */
+      box-shadow: 0 0 15px var(--tile-lit-bg);
     }
     .tile.selected-by-player {
       background-color: #64b5f6; /* Light blue for selected by player */

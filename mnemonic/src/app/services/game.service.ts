@@ -1,4 +1,4 @@
-import { Injectable, signal } from "@angular/core";
+import {Injectable, signal} from "@angular/core";
 
 export interface Tile {
   id: number;
@@ -22,8 +22,8 @@ export class GameService {
   public numTilesToLight = signal(3); // Initial number of tiles to light
 
   // Sequence and Player Input
-  private sequence: number[] = [];
-  private playerInput: number[] = [];
+  #sequence: number[] = [];
+  #playerInput: number[] = [];
 
   constructor() {
     this.initializeGrid();
@@ -36,7 +36,7 @@ export class GameService {
       newTiles.push({ id: i, lit: false, selectedByPlayer: false });
     }
     this.tiles.set(newTiles);
-    this.playerInput = [];
+    this.#playerInput = [];
   }
 
   // --- Core Game Logic Methods (stubs for now) ---
@@ -52,50 +52,50 @@ export class GameService {
   }
 
   nextRound(): void {
-    this.playerInput = [];
+    this.#playerInput = [];
     this.tiles.update(tiles => tiles.map(t => ({ ...t, lit: false, selectedByPlayer: false })));
-    this.generateSequence();
+    this.#generateSequence();
     // Logic to display sequence will be handled by components observing state
     this.gameState.set("sequence");
     // After sequence display, move to "input"
   }
 
-  private generateSequence(): void {
+  #generateSequence(): void {
     const availableTiles = this.tiles().map(t => t.id);
-    this.sequence = [];
+    this.#sequence = [];
     const numToLight = this.numTilesToLight();
 
     for (let i = 0; i < numToLight; i++) {
       if (availableTiles.length === 0) break;
       const randomIndex = Math.floor(Math.random() * availableTiles.length);
-      this.sequence.push(availableTiles.splice(randomIndex, 1)[0]);
+      this.#sequence.push(availableTiles.splice(randomIndex, 1)[0]);
     }
-    console.log("Generated Sequence:", this.sequence); // For debugging
+    console.log("Generated Sequence:", this.#sequence); // For debugging
   }
 
   handlePlayerTileClick(tileId: number): void {
     if (this.gameState() !== "input") return;
 
-    if (this.playerInput.includes(tileId)) {
+    if (this.#playerInput.includes(tileId)) {
       // Already selected, maybe allow deselect? For now, ignore.
       return;
     }
-    this.playerInput.push(tileId);
+    this.#playerInput.push(tileId);
     this.tiles.update(tiles =>
       tiles.map(t => (t.id === tileId ? { ...t, selectedByPlayer: true } : t))
     );
 
     // Check if player has made enough selections
-    if (this.playerInput.length === this.sequence.length) {
-      this.checkRound();
+    if (this.#playerInput.length === this.#sequence.length) {
+      this.#checkRound();
     }
   }
 
-  private checkRound(): void {
+  #checkRound(): void {
     this.gameState.set("checking");
-    const correctSelections = this.playerInput.every(id => this.sequence.includes(id)) &&
-      this.playerInput.length === this.sequence.length &&
-      this.sequence.every(id => this.playerInput.includes(id));
+    const correctSelections = this.#playerInput.every(id => this.#sequence.includes(id)) &&
+      this.#playerInput.length === this.#sequence.length &&
+      this.#sequence.every(id => this.#playerInput.includes(id));
 
     if (correctSelections) {
       this.score.update(s => s + this.numTilesToLight());
@@ -126,7 +126,7 @@ export class GameService {
 
   // Method to get the current sequence (e.g., for the grid component to light up tiles)
   getSequence(): ReadonlyArray<number> {
-    return this.sequence;
+    return this.#sequence;
   }
 
   // Reset game
