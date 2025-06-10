@@ -1,25 +1,19 @@
 import {Injectable, signal} from "@angular/core";
-
-export interface Tile {
-  id: number;
-  lit: boolean;
-  selectedByPlayer: boolean;
-}
+import {Tile} from '../models/tile.model';
 
 @Injectable({
   providedIn: "root",
 })
 export class GameService {
   // Game State
-  public currentLevel = signal(1);
-  public score = signal(0);
-  public lives = signal(3); // Example: if we want lives
-  public gameState = signal<"idle" | "sequence" | "input" | "checking" | "over">("idle");
+  currentLevel = signal(1);
+  score = signal(0);
+  gameState = signal<"idle" | "sequence" | "input" | "checking" | "over">("idle");
 
   // Grid Configuration
-  public gridSize = signal(3); // Initial grid size (3x3)
-  public tiles = signal<Tile[]>([]);
-  public numTilesToLight = signal(3); // Initial number of tiles to light
+  gridSize = signal(3); // Initial grid size (3x3)
+  tiles = signal<Tile[]>([]);
+  numTilesToLight = signal(3); // Initial number of tiles to light
 
   // Sequence and Player Input
   #sequence: number[] = [];
@@ -33,7 +27,7 @@ export class GameService {
     const size = this.gridSize();
     const newTiles: Tile[] = [];
     for (let i = 0; i < size * size; i++) {
-      newTiles.push({ id: i, lit: false, selectedByPlayer: false });
+      newTiles.push({ id: i, lit: false, selectedByPlayer: false, isCorrectAndClicked: false, isCorrectAndNotClicked: false, isIncorrectAndClicked: false });
     }
     this.tiles.set(newTiles);
     this.#playerInput = [];
@@ -53,7 +47,7 @@ export class GameService {
 
   nextRound(): void {
     this.#playerInput = [];
-    this.tiles.update(tiles => tiles.map(t => ({ ...t, lit: false, selectedByPlayer: false })));
+    this.tiles.update(tiles => tiles.map(t => ({ ...t, lit: false, selectedByPlayer: false, isCorrectAndClicked: false, isCorrectAndNotClicked: false, isIncorrectAndClicked: false })));
     this.#generateSequence();
     // Logic to display sequence will be handled by components observing state
     this.gameState.set("sequence");
@@ -110,17 +104,25 @@ export class GameService {
       this.initializeGrid(); // Re-initialize grid for new size if it changed
       this.nextRound(); // Start next round
     } else {
-      // Incorrect selection
-      this.lives.update(l => l - 1);
-      if (this.lives() <= 0) {
-        this.gameState.set("over");
-        console.log("Game Over");
-      } else {
-        // Player made a mistake, repeat round or just show error and let them try again?
-        // For now, let s just go to game over on any mistake to simplify.
-        this.gameState.set("over"); // Or could be "round_failed" then back to "idle" or "sequence"
-        console.log("Round Failed");
-      }
+      // Update tiles with final states before setting game to over
+      const sequence = this.#sequence;
+      const playerInput = this.#playerInput;
+      this.tiles.update(tiles =>
+        tiles.map(tile => {
+          const isInSequence = sequence.includes(tile.id);
+          const isClickedByPlayer = playerInput.includes(tile.id);
+          return {
+            ...tile,
+            isCorrectAndClicked: isInSequence && isClickedByPlayer,
+            isCorrectAndNotClicked: isInSequence && !isClickedByPlayer,
+            isIncorrectAndClicked: !isInSequence && isClickedByPlayer,
+          };
+        })
+      );
+
+      // Player made a mistake, game over as per current simplified logic.
+      this.gameState.set("over"); // Or could be "round_failed" then back to "idle" or "sequence"
+      console.log("Round Failed, Game Over");
     }
   }
 
@@ -131,7 +133,6 @@ export class GameService {
 
   // Reset game
   resetGame(): void {
-    this.lives.set(3);
     this.startGame();
   }
 }

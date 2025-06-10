@@ -1,7 +1,8 @@
 import {Component, inject} from "@angular/core";
-import {GameService, Tile} from "../../services/game.service"; // Added Tile here
+import {GameService} from "../../services/game.service"; // Added Tile here
 import {TileComponent} from "../tile/tile";
 import {CommonModule} from "@angular/common";
+import {Tile} from '../../models/tile.model';
 
 @Component({
   selector: "app-grid",
