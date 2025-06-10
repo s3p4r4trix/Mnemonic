@@ -33,8 +33,6 @@ export class GameService {
     this.#playerInput = [];
   }
 
-  // --- Core Game Logic Methods (stubs for now) ---
-
   startGame(): void {
     this.currentLevel.set(1);
     this.score.set(0);
@@ -71,7 +69,7 @@ export class GameService {
     if (this.gameState() !== "input") return;
 
     if (this.#playerInput.includes(tileId)) {
-      // Already selected, maybe allow deselect? For now, ignore.
+      // Already selected - do nothing
       return;
     }
     this.#playerInput.push(tileId);

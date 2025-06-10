@@ -44,6 +44,10 @@
                   "maximumError": "8kB"
                 }
               ],
+              "outputPath": {
+                "base": "../docs",
+                "browser": ""
+              },
               "outputHashing": "all"
             },
             "development": {

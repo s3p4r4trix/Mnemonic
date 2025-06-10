@@ -1,4 +1,4 @@
-import {Component, effect, inject, OnDestroy, OnInit, signal} from "@angular/core";
+import {Component, effect, inject, OnDestroy, signal} from "@angular/core";
 import {GameService} from "../../services/game.service";
 import {GridComponent} from "../grid/grid";
 import {CommonModule} from "@angular/common";
@@ -10,7 +10,7 @@ import {CommonModule} from "@angular/common";
   templateUrl: './game.html',
   styleUrls: ['./game.scss']
 })
-export class GameComponent implements OnInit, OnDestroy {
+export class GameComponent implements OnDestroy {
   gameService = inject(GameService);
   message = signal<string>(""); // For temporary messages like "Correct!" or "Wrong Tile!"
 
@@ -24,11 +24,6 @@ export class GameComponent implements OnInit, OnDestroy {
         this.displaySequence();
       }
     });
-  }
-
-  ngOnInit(): void {
-    // Optionally start game automatically or wait for button click
-    // this.gameService.startGame();
   }
 
   startGame(): void {
