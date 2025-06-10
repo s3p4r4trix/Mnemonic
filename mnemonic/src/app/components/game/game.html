@@ -1,0 +1,30 @@
+<div class="game-area">
+  <h1>Mnemonic Trainer</h1>
+  <div class="stats">
+    <p>Level: {{ gameService.currentLevel() }}</p>
+    <p>Score: {{ gameService.score() }}</p>
+    <p>Tiles to remember: {{ gameService.numTilesToLight() }}</p>
+    <p *ngIf="gameService.gameState() !== 'over'">Lives: {{ gameService.lives() }}</p>
+  </div>
+
+  <button (click)="startGame()" *ngIf="gameService.gameState() === 'idle' || gameService.gameState() === 'over'">
+    {{ gameService.gameState() === 'over' ? 'Play Again' : 'Start Game' }}
+  </button>
+
+  <div *ngIf="gameService.gameState() === 'sequence'" class="message">
+    Memorize the sequence...
+  </div>
+  <div *ngIf="gameService.gameState() === 'input'" class="message">
+    Your turn! Click the tiles.
+  </div>
+  <div *ngIf="gameService.gameState() === 'checking'" class="message">
+    Checking...
+  </div>
+  <div *ngIf="gameService.gameState() === 'over'" class="message game-over">
+    Game Over! Final Score: {{ gameService.score() }}
+  </div>
+
+  <app-grid *ngIf="gameService.gameState() !== 'idle' && gameService.gameState() !== 'over'"></app-grid>
+
+  <div *ngIf="message()" class="flash-message">{{ message() }}</div>
+</div>
