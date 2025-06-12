@@ -1,5 +1,9 @@
 <div class="game-area">
   <h1 class="game-title">Mnemonic Trainer</h1>
+  <div class="stats">
+    <p>Score: {{ gameService.score() }}</p>
+    <p>Tiles to remember: {{ gameService.numTilesToLight() }}</p>
+  </div>
 
   @if (gameService.gameState() === 'idle' || gameService.gameState() === 'over') {
     <button class="start-button" (click)="startGame()">
@@ -14,7 +18,8 @@
   }
   @if (gameService.gameState() === 'input') {
     <div class="message">
-      Your turn! Click the tiles.
+      <p>Your turn! Click the tiles.</p>
+      <p>Double score as long as in sequence!</p>
     </div>
   }
   @if (gameService.gameState() === 'checking') {

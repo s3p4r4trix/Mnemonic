@@ -18,6 +18,7 @@ export class GameService {
   // Sequence and Player Input
   #sequence: number[] = [];
   #playerInput: number[] = [];
+  #isInCombo = false;
 
   constructor() {
     this.initializeGrid();
@@ -36,6 +37,7 @@ export class GameService {
   startGame(): void {
     this.currentLevel.set(1);
     this.score.set(0);
+    this.#isInCombo = false;
     this.numTilesToLight.set(3);
     this.gridSize.set(3);
     this.initializeGrid();
@@ -45,6 +47,7 @@ export class GameService {
 
   nextRound(): void {
     this.#playerInput = [];
+    this.#isInCombo = true;
     this.tiles.update(tiles => tiles.map(t => ({ ...t, lit: false, selectedByPlayer: false, isCorrectAndClicked: false, isCorrectAndNotClicked: false, isIncorrectAndClicked: false })));
     this.#generateSequence();
     // Logic to display sequence will be handled by components observing state
@@ -77,6 +80,24 @@ export class GameService {
       tiles.map(t => (t.id === tileId ? { ...t, selectedByPlayer: true } : t))
     );
 
+    const currentIndex = this.#playerInput.length - 1;
+    const isInSequence = this.#sequence[currentIndex] === tileId;
+    const isCorrectClick = this.#sequence.findIndex(id => id === tileId) !== -1;
+
+    if (isCorrectClick) {
+      // Check if tile clicked can score double
+      if (this.#isInCombo && isInSequence) {
+        this.score.update(s => s + 2);
+      } else {
+        // disable combo logic
+        this.#isInCombo = false;
+        this.score.update(s => s + 1);
+      }
+    } else {
+      this.#isInCombo = false;
+      // Game over logic is handled in #checkRound when it checks for correctSelections
+    }
+
     // Check if player has made enough selections
     if (this.#playerInput.length === this.#sequence.length) {
       this.#checkRound();
@@ -90,7 +111,6 @@ export class GameService {
       this.#sequence.every(id => this.#playerInput.includes(id));
 
     if (correctSelections) {
-      this.score.update(s => s + this.numTilesToLight());
       this.currentLevel.update(l => l + 1);
       // Progression logic
       this.numTilesToLight.update(n => n + 1);
@@ -102,7 +122,8 @@ export class GameService {
       this.initializeGrid(); // Re-initialize grid for new size if it changed
       this.nextRound(); // Start next round
     } else {
-      // Update tiles with final states before setting game to over
+      this.#isInCombo = false; // Reset combo on incorrect round
+      // Update tiles with final states before setting the game to over
       const sequence = this.#sequence;
       const playerInput = this.#playerInput;
       this.tiles.update(tiles =>
