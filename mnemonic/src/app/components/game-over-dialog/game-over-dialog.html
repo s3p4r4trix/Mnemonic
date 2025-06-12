@@ -1,0 +1,14 @@
+<h1 mat-dialog-title class="game-over-text">Game Over!</h1>
+<div mat-dialog-content class="game-over">
+  <div class="stats">
+    <p>Level: {{ gameService.currentLevel() }}</p>
+    <p>Tiles to remember: {{ gameService.numTilesToLight() }}</p>
+
+    <span class="final-score-label">Final Score:</span>
+    <span class="final-score-value">{{ gameService.score() }}</span>
+  </div>
+</div>
+<div mat-dialog-actions align="end">
+  <button mat-flat-button (click)="onClose()">Close</button>
+  <button mat-raised-button color="primary" (click)="onPlayAgain()">Play Again</button>
+</div>

@@ -5,9 +5,9 @@
     <p>Tiles to remember: {{ gameService.numTilesToLight() }}</p>
   </div>
 
-  @if (gameService.gameState() === 'idle' || gameService.gameState() === 'over') {
+  @if (gameService.gameState() === 'idle') {
     <button class="start-button" (click)="startGame()">
-      {{ gameService.gameState() === 'over' ? 'Play Again' : 'Start Game' }}
+      Start Game
     </button>
   }
 
@@ -25,18 +25,6 @@
   @if (gameService.gameState() === 'checking') {
     <div class="message">
       Checking...
-    </div>
-  }
-  @if (gameService.gameState() === 'over') {
-    <div class="message game-over">
-      <span class="game-over-text">Game Over!</span>
-      <div class="stats">
-        <p>Level: {{ gameService.currentLevel() }}</p>
-        <p>Tiles to remember: {{ gameService.numTilesToLight() }}</p>
-      </div>
-
-      <span class="final-score-label">Final Score:</span>
-      <span class="final-score-value">{{ gameService.score() }}</span>
     </div>
   }
 

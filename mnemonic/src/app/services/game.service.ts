@@ -45,6 +45,16 @@ export class GameService {
     this.gameState.set("sequence");
   }
 
+  // Reset game
+  resetGame(): void {
+    this.currentLevel.set(1);
+    this.score.set(0);
+    this.#isInCombo = false;
+    this.numTilesToLight.set(3);
+    this.gridSize.set(3);
+    this.gameState.set("idle");
+  }
+
   nextRound(): void {
     this.#playerInput = [];
     this.#isInCombo = true;
@@ -148,10 +158,5 @@ export class GameService {
   // Method to get the current sequence (e.g., for the grid component to light up tiles)
   getSequence(): ReadonlyArray<number> {
     return this.#sequence;
-  }
-
-  // Reset game
-  resetGame(): void {
-    this.startGame();
   }
 }

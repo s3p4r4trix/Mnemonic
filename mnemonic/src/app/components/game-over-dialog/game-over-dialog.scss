@@ -1,0 +1,49 @@
+:host {
+  background-color: var(--grid-bg);
+  border: 2px solid var(--primary-color);
+  border-radius: 10px;
+  padding: 25px; /* Increased padding */
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25); /* Enhanced shadow */
+  display: flex; /* Use flex for better alignment of children */
+  flex-direction: column; /* Stack children vertically */
+  align-items: center; /* Center children horizontally */
+  gap: 10px; /* Space between elements */
+}
+
+.game-over-text {
+  font-size: 2.2rem; /* Larger "Game Over!" text */
+  color: var(--text-color);
+  font-weight: bold;
+  margin-bottom: 5px; /* Space below "Game Over!" */
+}
+
+.game-over .final-score-label {
+  font-size: 1.3rem; /* Adjusted size for "Final Score:" */
+  color: var(--text-color);
+  margin-bottom: 0; /* Reduced space */
+  margin-top: 5px;
+}
+
+.game-over .final-score-value {
+  font-size: 2.5rem; /* Larger score value */
+  font-weight: bold;
+  margin-top: 5px;
+  color: var(--primary-color);
+}
+
+.stats {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  width: 100%;
+  background-color: var(--grid-bg); // Use grid-bg for consistency or a new var
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1); // Subtle shadow
+  gap: 10px;
+}
+
+.stats p {
+  margin-top: 5px;
+  color: var(--text-color);
+}
