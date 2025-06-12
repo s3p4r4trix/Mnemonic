@@ -1,4 +1,4 @@
-import {Component, effect, inject, OnDestroy, signal} from "@angular/core";
+import {Component, effect, inject, OnDestroy} from "@angular/core";
 import {GameService} from "../../services/game.service";
 import {GridComponent} from "../grid/grid";
 import {CommonModule} from "@angular/common";
@@ -12,8 +12,6 @@ import {CommonModule} from "@angular/common";
 })
 export class GameComponent implements OnDestroy {
   gameService = inject(GameService);
-  message = signal<string>(""); // For temporary messages like "Correct!" or "Wrong Tile!"
-
   #effectRef: any;
 
   constructor() {

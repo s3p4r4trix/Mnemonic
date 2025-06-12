@@ -78,27 +78,11 @@
 .game-over .final-score-label {
   font-size: 1.3rem; /* Adjusted size for "Final Score:" */
   color: var(--text-color);
-  margin-bottom: 0px; /* Reduced space */
+  margin-bottom: 0; /* Reduced space */
 }
 
 .game-over .final-score-value {
   font-size: 2.5rem; /* Larger score value */
   font-weight: bold;
   color: var(--primary-color);
-}
-
-.flash-message {
-  margin-top: 15px;
-  padding: 10px 15px;
-  border-radius: 5px;
-  background-color: var(--primary-color);
-  color: var(--background-color); // Text color that contrasts with primary
-  font-weight: bold;
-  animation: fadeOut 3s forwards;
-}
-
-@keyframes fadeOut {
-  0% { opacity: 1; }
-  80% { opacity: 1; } /* Stay visible for a bit */
-  100% { opacity: 0; }
 }

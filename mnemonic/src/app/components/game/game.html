@@ -1,9 +1,5 @@
 <div class="game-area">
   <h1 class="game-title">Mnemonic Trainer</h1>
-  <div class="stats">
-    <p>Level: {{ gameService.currentLevel() }}</p>
-    <p>Tiles to remember: {{ gameService.numTilesToLight() }}</p>
-  </div>
 
   @if (gameService.gameState() === 'idle' || gameService.gameState() === 'over') {
     <button class="start-button" (click)="startGame()">
@@ -29,6 +25,11 @@
   @if (gameService.gameState() === 'over') {
     <div class="message game-over">
       <span class="game-over-text">Game Over!</span>
+      <div class="stats">
+        <p>Level: {{ gameService.currentLevel() }}</p>
+        <p>Tiles to remember: {{ gameService.numTilesToLight() }}</p>
+      </div>
+
       <span class="final-score-label">Final Score:</span>
       <span class="final-score-value">{{ gameService.score() }}</span>
     </div>
@@ -36,9 +37,5 @@
 
   @if (gameService.gameState() !== 'idle') {
     <app-grid></app-grid>
-  }
-
-  @if (message()) {
-    <div class="flash-message">{{ message() }}</div>
   }
 </div>

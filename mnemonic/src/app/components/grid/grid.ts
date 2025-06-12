@@ -2,7 +2,6 @@ import {Component, inject} from "@angular/core";
 import {GameService} from "../../services/game.service"; // Added Tile here
 import {TileComponent} from "../tile/tile";
 import {CommonModule} from "@angular/common";
-import {Tile} from '../../models/tile.model';
 
 @Component({
   selector: "app-grid",
@@ -21,7 +20,6 @@ import {Tile} from '../../models/tile.model';
   styles: [`
     .grid-container {
       display: grid;
-      gap: 8px; /* Slightly increased gap */
       margin: 25px auto;
       padding: 10px; /* Padding around the grid */
       background-color: var(--grid-bg); /* Light background for the grid area */
@@ -36,17 +34,23 @@ export class GridComponent {
 
   getGridStyle() {
     const size = this.gameService.gridSize();
-    // Ensure a minimum width for smaller grids if tiles were smaller, but 80px is decent.
+    const screenWidth = window.innerWidth;
+    let tileSize = Math.floor(screenWidth / size); // Calculate tile size
+
+    // Enforce minimum and maximum tile size
+    tileSize = Math.max(40, Math.min(tileSize, 80));
+
+    // Calculate dynamic gap
+    const calculatedGap = Math.floor(tileSize * 0.1);
+    const finalGap = Math.max(4, calculatedGap); // Ensure a minimum gap of 4px
+
     return {
-      "grid-template-columns": `repeat(${size}, 80px)`,
+      "grid-template-columns": `repeat(${size}, ${tileSize}px)`,
+      "gap": `${finalGap}px` // Add a dynamic gap here
     };
   }
 
   onTileClicked(tileId: number): void {
     this.gameService.handlePlayerTileClick(tileId);
-  }
-
-  trackTileById(index: number, tile: Tile): number { // Changed 'any' to 'Tile'
-    return tile.id;
   }
 }
