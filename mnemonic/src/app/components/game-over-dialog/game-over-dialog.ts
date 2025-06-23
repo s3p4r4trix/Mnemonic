@@ -21,7 +21,11 @@ export class GameOverDialogComponent {
   dialogRef = inject(MatDialogRef<GameOverDialogComponent>)
 
   onPlayAgain(): void {
-    this.dialogRef.close(true); // Pass true to indicate "Play Again"
+    this.dialogRef.close('play_again'); // Pass 'play_again' to indicate "Play Again"
+  }
+
+  onRetryLevel(): void {
+    this.dialogRef.close('retry'); // Pass 'retry' to indicate "Retry Level"
   }
 
   onClose(): void {

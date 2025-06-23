@@ -34,11 +34,17 @@ export class GameComponent {
         });
 
         dialogRef.afterClosed().subscribe(result => {
-          if (result === true) { // `true` is passed from "Play Again" button
+          if (result === 'play_again') { // `true` is passed from "Play Again" button
             this.gameService.startGame();
+          } else if (result === 'retry') { // 'retry' is passed from "Retry Level" button
+            this.gameService.retryLastLevel();
           } else {
-            // reset the game but do not start a new round
-            this.gameService.resetGame()
+            // If 'Close' was clicked (result is undefined) or any other unexpected result,
+            // do nothing here. The game remains in the 'over' state, showing the final grid.
+            // The user can then use the "Start Game" button on the main screen if they wish to play again.
+            // If they want to go to a fully idle state, they would need a different button/action
+            // that explicitly calls gameService.resetGame(). For now, "Close" on dialog
+            // just closes the dialog and keeps the "over" state.
           }
         });
       }

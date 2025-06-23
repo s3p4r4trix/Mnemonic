@@ -5,7 +5,7 @@
     <p>Tiles to remember: {{ gameService.numTilesToLight() }}</p>
   </div>
 
-  @if (gameService.gameState() === 'idle') {
+  @if (gameService.gameState() === 'idle' || gameService.gameState() === 'over') {
     <button class="start-button" (click)="startGame()">
       Start Game
     </button>

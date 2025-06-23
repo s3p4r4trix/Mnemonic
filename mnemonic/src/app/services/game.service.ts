@@ -62,6 +62,26 @@ export class GameService {
     this.gameState.set("idle");
   }
 
+  retryLastLevel(): void {
+    this.#playerInput = []; // Clear previous input
+    // Ensure tiles are reset visually (no selections, no final state colors)
+    // but maintain the current grid size and level parameters.
+    this.tiles.update(tiles =>
+      tiles.map(t => ({
+        ...t,
+        lit: false,
+        selectedByPlayer: false,
+        isCorrectAndClicked: false,
+        isCorrectAndNotClicked: false,
+        isIncorrectAndClicked: false
+      }))
+    );
+    // The score is maintained from the point of failure.
+    // currentLevel, numTilesToLight, and gridSize are already set to what they were for the failed level.
+    this.#generateSequence(); // Generate a new sequence for the same level settings
+    this.gameState.set("sequence");
+  }
+
   nextRound(): void {
     this.#playerInput = [];
     this.#isInCombo = true;
