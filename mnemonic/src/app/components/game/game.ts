@@ -21,12 +21,12 @@ export class GameComponent {
     effect(() => {
       const gameState = this.gameService.gameState();
 
-      // manage sequence display
+      // Manage sequence display
       if (gameState === "sequence") {
         this.displaySequence();
       }
 
-      // game over dialog
+      // Game over dialog
       if (gameState === 'over') {
         const dialogRef = this.dialog.open(GameOverDialogComponent, {
           data: { score: this.gameService.score() },
