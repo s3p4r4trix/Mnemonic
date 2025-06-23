@@ -11,6 +11,10 @@
     </button>
   }
 
+  @if (gameService.gameState() !== 'idle') {
+    <app-grid></app-grid>
+  }
+
   @if (gameService.gameState() === 'sequence') {
     <div class="message">
       Memorize the sequence...
@@ -18,17 +22,12 @@
   }
   @if (gameService.gameState() === 'input') {
     <div class="message">
-      <p>Your turn! Click the tiles.</p>
-      <p>Double score as long as in sequence!</p>
+      <p>Your turn! Double score as long as in sequence!</p>
     </div>
   }
   @if (gameService.gameState() === 'checking') {
     <div class="message">
       Checking...
     </div>
-  }
-
-  @if (gameService.gameState() !== 'idle') {
-    <app-grid></app-grid>
   }
 </div>

@@ -21,10 +21,10 @@ import {CommonModule} from "@angular/common";
     .grid-container {
       display: grid;
       margin: 25px auto;
-      padding: 10px; /* Padding around the grid */
-      background-color: var(--grid-bg); /* Light background for the grid area */
+      padding: 10px;
+      background-color: var(--grid-bg);
       border-radius: 10px;
-      width: fit-content; /* Keep it centered */
+      width: fit-content;
       box-shadow: inset 2px 2px 5px rgba(0,0,0,0.1);
     }
   `]
@@ -34,11 +34,7 @@ export class GridComponent {
 
   getGridStyle() {
     const size = this.gameService.gridSize();
-    const screenWidth = window.innerWidth;
-    let tileSize = Math.floor(screenWidth / size); // Calculate tile size
-
-    // Enforce minimum and maximum tile size
-    tileSize = Math.max(40, Math.min(tileSize, 80));
+    const tileSize = this.gameService.tileSize();
 
     // Calculate dynamic gap
     const calculatedGap = Math.floor(tileSize * 0.1);

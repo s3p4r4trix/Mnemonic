@@ -15,7 +15,7 @@
   display: block;
   margin: 20px auto;
   font-size: 1rem;
-  transition: border-color 0.3s ease, background-color 0.3s ease, color 0.3s ease; // Added transition
+  transition: border-color 0.3s ease, background-color 0.3s ease, color 0.3s ease;
 }
 
 // Styles for game messages, stats, etc.
@@ -30,10 +30,10 @@
   display: flex;
   justify-content: space-around;
   width: 100%;
-  max-width: 400px; // Max width for stats
+  max-width: 400px;
   margin-bottom: 20px;
   padding: 10px;
-  background-color: var(--grid-bg); // Use grid-bg for consistency or a new var
+  background-color: var(--grid-bg);
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1); // Subtle shadow
 }

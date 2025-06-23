@@ -1,4 +1,4 @@
-import {Injectable, signal} from "@angular/core";
+import {computed, Injectable, signal} from "@angular/core";
 import {Tile} from '../models/tile.model';
 
 @Injectable({
@@ -12,6 +12,13 @@ export class GameService {
 
   // Grid Configuration
   gridSize = signal(3); // Initial grid size (3x3)
+  tileSize = computed(() => {
+    const screenWidth = window.innerWidth - 50; // Subtract padding
+    let tileSize = Math.floor(screenWidth / this.gridSize()); // Calculate tile size
+
+    // Enforce minimum (40) and maximum (80) tile size
+    return Math.max(40, Math.min(tileSize, 80));
+  });
   tiles = signal<Tile[]>([]);
   numTilesToLight = signal(3); // Initial number of tiles to light
 
@@ -60,9 +67,8 @@ export class GameService {
     this.#isInCombo = true;
     this.tiles.update(tiles => tiles.map(t => ({ ...t, lit: false, selectedByPlayer: false, isCorrectAndClicked: false, isCorrectAndNotClicked: false, isIncorrectAndClicked: false })));
     this.#generateSequence();
-    // Logic to display sequence will be handled by components observing state
+    // Logic to display a sequence will be handled by components observing state
     this.gameState.set("sequence");
-    // After sequence display, move to "input"
   }
 
   #generateSequence(): void {
@@ -99,7 +105,7 @@ export class GameService {
       if (this.#isInCombo && isInSequence) {
         this.score.update(s => s + 2);
       } else {
-        // disable combo logic
+        // Disable combo logic
         this.#isInCombo = false;
         this.score.update(s => s + 1);
       }
@@ -150,7 +156,7 @@ export class GameService {
       );
 
       // Player made a mistake, game over as per current simplified logic.
-      this.gameState.set("over"); // Or could be "round_failed" then back to "idle" or "sequence"
+      this.gameState.set("over");
       console.log("Round Failed, Game Over");
     }
   }

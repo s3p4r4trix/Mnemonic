@@ -1,4 +1,4 @@
-import {Component, inject, input, output} from "@angular/core"; // Added inject
+import {Component, computed, inject, input, output} from "@angular/core"; // Added inject
 import {GameService} from "../../services/game.service";
 import {Tile} from '../../models/tile.model';
 
@@ -9,6 +9,8 @@ import {Tile} from '../../models/tile.model';
   template: `
     <div
       class="tile"
+      [style.width]="this.tileSize() + 'px'"
+      [style.height]="this.tileSize() + 'px'"
       [class.lit]="tile().lit && gameService.gameState() !== 'over'"
       [class.selected-by-player]="tile().selectedByPlayer && gameService.gameState() !== 'over'"
       [class.correct-selection]="tile().selectedByPlayer && tile().lit && gameService.gameState() === 'checking'"
@@ -23,11 +25,11 @@ import {Tile} from '../../models/tile.model';
   styleUrl: "./tile.scss",
 })
 export class TileComponent {
-  tile = input.required<Tile>();
-  tileClicked = output<number>();
-  // Expose GameService to the template for checking gameState if needed for styling
-  // This is generally not ideal for a presentational component, but for one-off conditional class:
   gameService = inject(GameService);
+
+  tile = input.required<Tile>();
+  tileSize = computed(() => this.gameService.tileSize());
+  tileClicked = output<number>();
 
 
   onTileClick(): void {
