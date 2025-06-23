@@ -1,4 +1,4 @@
-import {Component, effect, inject, OnDestroy} from "@angular/core";
+import {Component, effect, inject} from "@angular/core";
 import {GameService} from "../../services/game.service";
 import {GridComponent} from "../grid/grid";
 import {CommonModule} from "@angular/common";
@@ -13,24 +13,20 @@ import {GameOverDialogComponent} from "../game-over-dialog/game-over-dialog";
   templateUrl: './game.html',
   styleUrls: ['./game.scss']
 })
-export class GameComponent implements OnDestroy {
+export class GameComponent {
   gameService = inject(GameService);
   dialog = inject(MatDialog);
-  #effectRef: any;
-  #gameOverDialogEffectRef: any;
 
   constructor() {
-    // Effect to manage sequence display
-    this.#effectRef = effect(() => {
+    effect(() => {
       const gameState = this.gameService.gameState();
+
+      // manage sequence display
       if (gameState === "sequence") {
         this.displaySequence();
       }
-    });
 
-    // Effect for game over dialog
-    this.#gameOverDialogEffectRef = effect(() => {
-      const gameState = this.gameService.gameState();
+      // game over dialog
       if (gameState === 'over') {
         const dialogRef = this.dialog.open(GameOverDialogComponent, {
           data: { score: this.gameService.score() },
@@ -57,15 +53,12 @@ export class GameComponent implements OnDestroy {
     const sequence = this.gameService.getSequence();
     if (!sequence || sequence.length === 0) return;
 
-    // Disable input during sequence display
-    // (already handled by gameState check in handlePlayerTileClick)
-
     // Light up tiles one by one
     for (const tileId of sequence) {
       this.gameService.tiles.update(tiles =>
         tiles.map(t => (t.id === tileId ? { ...t, lit: true } : t))
       );
-      await this.#delay(700); // Time tile is lit during sequence
+      await this.#delay(700); // Time tile is lit during a sequence
       this.gameService.tiles.update(tiles =>
         tiles.map(t => (t.id === tileId ? { ...t, lit: false } : t))
       );
@@ -86,14 +79,5 @@ export class GameComponent implements OnDestroy {
 
   #delay(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
-  }
-
-  ngOnDestroy(): void {
-    if (this.#effectRef) {
-      this.#effectRef.destroy();
-    }
-    if (this.#gameOverDialogEffectRef) {
-      this.#gameOverDialogEffectRef.destroy();
-    }
   }
 }
