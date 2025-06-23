@@ -14,9 +14,6 @@ export class App implements OnInit {
   private document: Document = inject(DOCUMENT);
   currentTheme = signal<'light' | 'dark'>('light');
 
-  constructor() {
-    // No need to call updateBodyClass here, ngOnInit will handle initial setup
-  }
 
   ngOnInit(): void {
     const storedTheme = localStorage.getItem('theme') as 'light' | 'dark' | null;
@@ -24,6 +21,18 @@ export class App implements OnInit {
       this.currentTheme.set(storedTheme);
     }
     this.updateBodyClass();
+    this.preventDoubleTapZoom();
+  }
+
+  private preventDoubleTapZoom(): void {
+    let lastTouchEnd = 0;
+    this.document.addEventListener('touchend', (event) => {
+      const now = (new Date()).getTime();
+      if (now - lastTouchEnd <= 300) { // 300 ms is a common threshold for double tap
+        event.preventDefault();
+      }
+      lastTouchEnd = now;
+    }, { passive: false }); // passive: false is needed to call preventDefault
   }
 
   toggleTheme(): void {
@@ -36,10 +45,6 @@ export class App implements OnInit {
     this.document.body.classList.remove('dark-theme', 'light-theme'); // Remove both for clean slate
     if (this.currentTheme() === 'dark') {
       this.document.body.classList.add('dark-theme');
-    } else {
-      // Optionally add 'light-theme' if you have specific styles for it
-      // or rely on :root defaults when 'dark-theme' is not present.
-      // For simplicity, we'll rely on defaults.
     }
   }
 

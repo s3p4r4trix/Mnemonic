@@ -9,9 +9,14 @@
   transition: background-color 0.2s ease-in-out, transform 0.1s ease;
   box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
 }
-.tile:hover {
-  background-color: var(--tile-hover-bg);
+
+/* Apply hover styles only on devices that support true hover */
+@media (hover: hover) {
+  .tile:hover {
+    background-color: var(--tile-hover-bg);
+  }
 }
+
 .tile.lit {
   background-color: var(--tile-lit-bg);
   box-shadow: 0 0 15px var(--tile-lit-bg);
