@@ -6,7 +6,6 @@
 // The main M3 theme variables are now in custom-material-theme.scss,
 // scoped to .light-theme and .dark-theme.
 :root {
-  // General page background and text color, will be overridden by Material theme on body.
   // Kept for base HTML and non-Material parts.
   --page-background-color: #ffffff;
   --page-text-color: #333333;
@@ -55,5 +54,5 @@ body {
 
 /* Basic styling for the main container to ensure content is not hidden by the fixed button */
 .main-container {
-  padding-top: 50px; /* Adjust if button height changes */
+  padding-top: 50px;
 }

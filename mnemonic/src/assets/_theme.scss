@@ -73,120 +73,30 @@ $dark-on-background-color: rgb(229, 225, 233);
 $dark-surface-color: rgb(20, 19, 24);
 $dark-on-surface-color: rgb(229, 225, 233);
 
-// NEU: Standardisierte Hintergrund- und Vordergrund-Paletten.
-// Wir definieren diese Werte direkt, da die alten Material-Paletten nicht mehr verfügbar sind.
-// Die Farben sind an die M3-Variablen angelehnt oder sind typische Standardwerte.
-$mat-light-background: (
-  status-bar: lighten($light-background-color, 3%), // Leichter als der Hintergrund
-  app-bar: $light-background-color,
-  background: $light-background-color,
-  hover: rgba(black, 0.04),
-  card: $light-surface-color,
-  dialog: $light-surface-color,
-  disabled-button: rgba(black, 0.12),
-  disabled-text: rgba(black, 0.38),
-  divider: rgba(black, 0.12),
-  text: rgba(black, 0.87),
-  slider-min: rgba(black, 0.87),
-  slider-off: rgba(black, 0.26),
-  slider-off-active: rgba(black, 0.38),
-);
-
-$mat-light-foreground: (
-  base: black,
-  divider: rgba(black, 0.12),
-  dividers: rgba(black, 0.12),
-  disabled-button: rgba(black, 0.26),
-  disabled-text: rgba(black, 0.38),
-  elevation: black,
-  hint-text: rgba(black, 0.38),
-  secondary-text: rgba(black, 0.54),
-  icon: rgba(black, 0.54),
-  icons: rgba(black, 0.54),
-  text: rgba(black, 0.87),
-  slider-off: rgba(black, 0.26),
-  slider-off-active: rgba(black, 0.38),
-);
-
-$mat-dark-background: (
-  status-bar: darken($dark-background-color, 3%), // Dunkler als der Hintergrund
-  app-bar: $dark-background-color,
-  background: $dark-background-color,
-  hover: rgba(white, 0.04),
-  card: $dark-surface-color,
-  dialog: $dark-surface-color,
-  disabled-button: rgba(white, 0.12),
-  disabled-text: rgba(white, 0.38),
-  divider: rgba(white, 0.12),
-  text: rgba(white, 0.87),
-  slider-min: rgba(white, 0.87),
-  slider-off: rgba(white, 0.26),
-  slider-off-active: rgba(white, 0.38),
-);
-
-$mat-dark-foreground: (
-  base: white,
-  divider: rgba(white, 0.12),
-  dividers: rgba(white, 0.12),
-  disabled-button: rgba(white, 0.26),
-  disabled-text: rgba(white, 0.38),
-  elevation: black,
-  hint-text: rgba(white, 0.38),
-  secondary-text: rgba(white, 0.54),
-  icon: rgba(white, 0.54),
-  icons: rgba(white, 0.54),
-  text: rgba(white, 0.87),
-  slider-off: rgba(white, 0.26),
-  slider-off-active: rgba(white, 0.38),
-);
-
-
-// Definiere die Theme-Objekte direkt als Sass-Maps.
+// Definiere die Theme-Objekte direkt als Sass-Maps for M3.
+// Pass only primary, accent, warn palettes to the 'color' map.
+// Typography and density are defined at the root of the theme map.
 $custom-light-theme: (
   color: (
     primary: $custom-light-primary,
     accent: $custom-light-accent,
-    warn: $custom-light-warn,
-    background: (
-      default: $light-background-color,
-      on-background: $light-on-background-color,
-    ),
-    surface: (
-      default: $light-surface-color,
-      on-surface: $light-on-surface-color,
-    ),
+    warn: $custom-light-warn
   ),
-  typography: (),
-  density: 0,
-  foreground: $mat-light-foreground,
-  background: $mat-light-background,
+  typography: null, // Explicitly no custom typography
+  density: null     // Explicitly no custom density
 );
 
 $custom-dark-theme: (
   color: (
     primary: $custom-dark-primary,
     accent: $custom-dark-accent,
-    warn: $custom-dark-warn,
-    background: (
-      default: $dark-background-color,
-      on-background: $dark-on-background-color,
-    ),
-    surface: (
-      default: $dark-surface-color,
-      on-surface: $dark-on-surface-color,
-    ),
+    warn: $custom-dark-warn
   ),
-  typography: (),
-  density: 0,
-  foreground: $mat-dark-foreground,
-  background: $mat-dark-background,
+  typography: null, // Explicitly no custom typography
+  density: null     // Explicitly no custom density
 );
 
-// Wende das Light Theme und seine M3 Custom Properties an.
 .light-theme {
-  @include mat.all-component-themes($custom-light-theme);
-
-  // Embed light theme M3 variables (diese sind korrekt und nötig)
   --md-sys-color-primary: rgb(95 87 144);
   --md-sys-color-surface-tint: rgb(95 87 144);
   --md-sys-color-on-primary: rgb(255 255 255);
@@ -238,11 +148,7 @@ $custom-dark-theme: (
   --md-sys-color-surface-container-highest: rgb(229 225 233);
 }
 
-// Wende das Dark Theme und seine M3 Custom Properties an
 .dark-theme {
-  @include mat.all-component-themes($custom-dark-theme);
-
-  // Embed dark theme M3 variables
   --md-sys-color-primary: rgb(201 191 255);
   --md-sys-color-surface-tint: rgb(201 191 255);
   --md-sys-color-on-primary: rgb(49 40 95);
