@@ -5,7 +5,6 @@ import {CommonModule} from "@angular/common";
 
 @Component({
   selector: "app-grid",
-  standalone: true,
   imports: [CommonModule, TileComponent],
   template: `
     <div class="grid-container" [ngStyle]="getGridStyle()">

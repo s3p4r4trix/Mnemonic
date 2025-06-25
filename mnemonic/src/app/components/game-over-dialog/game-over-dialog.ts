@@ -10,7 +10,6 @@ export interface DialogData {
 
 @Component({
   selector: 'app-game-over-dialog',
-  standalone: true,
   imports: [CommonModule, MatDialogModule, MatButtonModule],
   templateUrl: './game-over-dialog.html',
   styleUrls: ['./game-over-dialog.scss']

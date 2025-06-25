@@ -4,7 +4,6 @@ import {Tile} from '../../models/tile.model';
 
 @Component({
   selector: "app-tile",
-  standalone: true,
   imports: [],
   template: `
     <div

@@ -1,5 +1,3 @@
-@use '@angular/material' as mat;
-
 // Define base palettes using the main colors from the CSS variables.
 // These palettes allow us to integrate with Angular Material's theme system.
 
@@ -20,42 +18,42 @@ $dark-warn-color: rgb(255, 180, 171);
 $dark-on-warn-color: rgb(105, 0, 5);
 
 // Define palettes as SASS maps directly.
-$custom-light-primary: (
+$light-primary: (
   500: $light-primary-color,
   contrast: (
     500: $light-on-primary-color,
   )
 );
 
-$custom-light-accent: (
+$light-accent: (
   500: $light-accent-color,
   contrast: (
     500: $light-on-accent-color,
   )
 );
 
-$custom-light-warn: (
+$light-warn: (
   500: $light-warn-color,
   contrast: (
     500: $light-on-warn-color,
   )
 );
 
-$custom-dark-primary: (
+$dark-primary: (
   500: $dark-primary-color,
   contrast: (
     500: $dark-on-primary-color,
   )
 );
 
-$custom-dark-accent: (
+$dark-accent: (
   500: $dark-accent-color,
   contrast: (
     500: $dark-on-accent-color,
   )
 );
 
-$custom-dark-warn: (
+$dark-warn: (
   500: $dark-warn-color,
   contrast: (
     500: $dark-on-warn-color,
@@ -76,25 +74,8 @@ $dark-on-surface-color: rgb(229, 225, 233);
 // Definiere die Theme-Objekte direkt als Sass-Maps for M3.
 // Pass only primary, accent, warn palettes to the 'color' map.
 // Typography and density are defined at the root of the theme map.
-$custom-light-theme: (
-  color: (
-    primary: $custom-light-primary,
-    accent: $custom-light-accent,
-    warn: $custom-light-warn
-  ),
-  typography: null, // Explicitly no custom typography
-  density: null     // Explicitly no custom density
-);
 
-$custom-dark-theme: (
-  color: (
-    primary: $custom-dark-primary,
-    accent: $custom-dark-accent,
-    warn: $custom-dark-warn
-  ),
-  typography: null, // Explicitly no custom typography
-  density: null     // Explicitly no custom density
-);
+// $custom-light-theme and $custom-dark-theme are now defined in styles.scss
 
 .light-theme {
   --md-sys-color-primary: rgb(95 87 144);

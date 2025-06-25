@@ -1,55 +1,58 @@
 // Import the custom Angular Material theme
-@use './assets/theme.scss';
+@use './assets/theme.scss' as theme; // Alias the import
+@use '@angular/material' as mat; // Import Angular Material
+
+// Apply core Material styles (typography, density, etc.)
+@include mat.core();
 
 // Minimal CSS variables for elements not themed by Angular Material,
 // like the theme toggle button, and for base page styling if needed.
 // The main M3 theme variables are now in custom-material-theme.scss,
 // scoped to .light-theme and .dark-theme.
-:root {
-  // Kept for base HTML and non-Material parts.
-  --page-background-color: #ffffff;
-  --page-text-color: #333333;
-
-  // Variables for the custom theme toggle button
-  --button-border-color: #007bff;
-  --button-bg-color: #ffffff;
-  --button-text-color: #007bff;
-}
-
-.dark-theme {
-  // General page background and text color for dark mode
-  --page-background-color: #121212;
-  --page-text-color: #e0e0e0;
-
-  // Variables for the custom theme toggle button in dark mode
-  --button-border-color: #bb86fc;
-  --button-bg-color: #121212;
-  --button-text-color: #bb86fc;
-}
 
 body {
   margin: 0;
   font-family: sans-serif;
-  // Use page-specific variables for base body styling.
-  // Angular Material components will use their own theme variables from custom-material-theme.scss.
-  // The classes .light-theme or .dark-theme applied to the body will provide Material's variables.
-  background-color: var(--page-background-color);
-  color: var(--page-text-color);
+  // Use M3 CSS variables for base body styling.
+  // These variables are defined in _theme.scss and applied via .light-theme or .dark-theme on the body.
+  background-color: var(--md-sys-color-background);
+  color: var(--md-sys-color-on-background);
   transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+// Define a mixin to apply all component themes and core theme properties
+@mixin apply-app-theme($app-theme) {
+  // Apply the color theme to Angular Material components
+  @include mat.all-component-themes($app-theme);
 }
 
 #theme-toggle-button {
   position: fixed;
-  top: 10px;
-  right: 10px;
-  padding: 8px 12px;
+  top: 16px; // Adjusted for better spacing with potential browser UI
+  right: 16px; // Adjusted for better spacing
+  padding: 8px 16px; // Slightly more padding
   cursor: pointer;
-  border: 1px solid var(--button-border-color);
-  background-color: var(--button-bg-color);
-  color: var(--button-text-color);
-  border-radius: 5px;
+  border: 1px solid var(--md-sys-color-outline); // Use outline color for border
+  background-color: var(--md-sys-color-surface-container-low); // A slightly elevated surface
+  color: var(--md-sys-color-primary); // Use primary color for text
+  border-radius: 8px; // Slightly more rounded
   z-index: 1000; // Ensure it's on top
-  transition: border-color 0.3s ease, background-color 0.3s ease, color 0.3s ease;
+  font-family: inherit; // Inherit body font
+  font-size: 0.875rem; // Consistent with some Material text styles
+  font-weight: 500; // Medium weight
+  box-shadow: var(--md-sys-color-shadow) 0 1px 3px; // Subtle shadow
+
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+
+  &:hover {
+    background-color: var(--md-sys-color-surface-container); // Slightly darker/lighter on hover
+    border-color: var(--md-sys-color-primary); // Primary color for border on hover
+    box-shadow: var(--md-sys-color-shadow) 0 2px 6px; // Slightly more pronounced shadow
+  }
+
+  &:active {
+    background-color: var(--md-sys-color-surface-container-high); // Even more interaction indication
+  }
 }
 
 /* Basic styling for the main container to ensure content is not hidden by the fixed button */

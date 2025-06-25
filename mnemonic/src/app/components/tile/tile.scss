@@ -1,40 +1,55 @@
 .tile {
-  background-color: var(--tile-bg);
-  border: 1px solid #bdbdbd;
+  background-color: var(--md-sys-color-surface-container);
+  border: 1px solid var(--md-sys-color-outline-variant);
   border-radius: 8px;
   display: flex;
   justify-content: center;
   align-items: center;
   cursor: pointer;
-  transition: background-color 0.2s ease-in-out, transform 0.1s ease;
-  box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+  transition: background-color 0.2s ease-in-out, transform 0.1s ease, border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+  box-shadow: var(--md-sys-color-shadow) 0 1px 2px;
 }
 
 /* Apply hover styles only on devices that support true hover */
 @media (hover: hover) {
-  .tile:hover {
-    background-color: var(--tile-hover-bg);
+  .tile:not(.lit):not(.selected-by-player):not(.correct-clicked):not(.incorrect-clicked):hover {
+    // Apply hover only if not in an active state
+    background-color: var(--md-sys-color-surface-container-high);
+    border-color: var(--md-sys-color-outline); // Darker outline on hover
   }
 }
 
 .tile.lit {
-  background-color: var(--tile-lit-bg);
-  box-shadow: 0 0 15px var(--tile-lit-bg);
+  background-color: var(--md-sys-color-primary-container);
+  border-color: var(--md-sys-color-primary);
+  // A subtle glow using the primary color could be nice.
+  box-shadow: 0 0 8px 2px var(--md-sys-color-primary-container), var(--md-sys-color-shadow) 0 1px 2px;
 }
+
 .tile.selected-by-player {
-  background-color: var(--tile-selected-bg);
-  border-color: var(--tile-selected-border);
+  background-color: var(--md-sys-color-secondary-container);
+  border-color: var(--md-sys-color-secondary);
+  box-shadow: 0 0 8px 2px var(--md-sys-color-secondary-container), var(--md-sys-color-shadow) 0 1px 2px;
 }
 
 .tile.correct-clicked {
-  background-color: var(--tile-correct-clicked-bg, #4CAF50);
-  border-color: var(--tile-correct-clicked-border, #388E3C);
+  // Using tertiary for "correct" indication. Could also be a custom "success" color if defined.
+  background-color: var(--md-sys-color-tertiary-container);
+  border-color: var(--md-sys-color-tertiary);
+  color: var(--md-sys-color-on-tertiary-container);
 }
+
 .tile.correct-not-clicked {
-  background-color: var(--tile-lit-bg);
-  border: 2px dashed var(--tile-lit-bg);
+  // This state shows tiles that were part of the sequence but player didn't click
+  background-color: var(--md-sys-color-surface-container); // Back to a more neutral base
+  // Use a dashed border with a color indicating it was "missed but correct"
+  // Primary color might be too strong; outline or a less saturated color could work.
+  border: 2px dashed var(--md-sys-color-outline);
+  // Potentially reduce opacity or add an icon to differentiate further
 }
+
 .tile.incorrect-clicked {
-  background-color: var(--tile-incorrect-clicked-bg, #F44336);
-  border-color: var(--tile-incorrect-clicked-border, #D32F2F);
+  background-color: var(--md-sys-color-error-container);
+  border-color: var(--md-sys-color-error);
+  color: var(--md-sys-color-on-error-container);
 }

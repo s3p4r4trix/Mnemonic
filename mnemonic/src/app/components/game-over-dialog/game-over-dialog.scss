@@ -1,55 +1,65 @@
 @use '@angular/material' as mat;
 
 :host {
-  background-color: var(--grid-bg);
-  border: 2px solid var(--primary-color);
-  border-radius: 10px;
-  padding: 25px;
+  // Dialogs typically use a surface color from the M3 system.
+  // surface-container-high or -highest are good candidates for dialogs.
+  background-color: var(--md-sys-color-surface-container-high);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: 12px;
+  padding: 24px;
   text-align: center;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  box-shadow: var(--md-sys-color-shadow) 0 4px 12px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: 16px;
 }
 
-.game-over-text {
-  font-size: 2.2rem;
-  color: var(--text-color);
+.game-over-title {
+  font-size: 2rem;
+  color: var(--md-sys-color-on-surface);
   font-weight: bold;
-  margin-bottom: 5px;
+  margin-bottom: 8px;
 }
 
-.game-over .final-score-label {
-  font-size: 1.3rem;
-  color: var(--text-color);
+.final-score-label {
+  font-size: 1.1rem;
+  color: var(--md-sys-color-on-surface-variant);
   margin-bottom: 0;
-  margin-top: 5px;
+  margin-top: 8px;
 }
 
-.game-over .final-score-value {
-  font-size: 2.5rem;
+.final-score-value {
+  font-size: 2.8rem;
   font-weight: bold;
-  margin-top: 5px;
-  color: var(--primary-color);
+  margin-top: 0;
+  color: var(--md-sys-color-primary);
 }
 
-.stats {
+.stats-container { // Renamed for clarity
   display: flex;
   flex-direction: column;
   justify-content: space-around;
   width: 100%;
-  background-color: var(--grid-bg);
+  background-color: var(--md-sys-color-surface-container);
   border-radius: 8px;
-  gap: 10px;
+  padding: 12px; // Added padding
+  gap: 8px;
 }
 
-.stats p {
-  margin-top: 5px;
-  color: var(--text-color);
+.stats-container p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--md-sys-color-on-surface-variant);
 }
 
-.play-again {
-  --mdc-protected-button-container-color: var(--button-bg-color);
-  --mdc-protected-button-label-text-color: var(--button-text-color);
-}
+// Assuming .play-again is an Angular Material button (e.g., <button mat-flat-button color="primary">)
+// The MDC variables are no longer needed as the button should inherit from the global theme.
+// .play-again {
+//   --mdc-protected-button-container-color: var(--button-bg-color); // REMOVE
+//   --mdc-protected-button-label-text-color: var(--button-text-color); // REMOVE
+// }
+// If specific styling is still needed for the button beyond standard mat-button theming,
+// it should be done carefully, possibly using ::ng-deep if absolutely necessary,
+// or by applying a custom class and styling that class with M3 variables.
+// For now, we assume the button will be styled correctly by the global Material theme.

@@ -8,7 +8,6 @@ import {GameOverDialogComponent} from "../game-over-dialog/game-over-dialog";
 
 @Component({
   selector: "app-game",
-  standalone: true,
   imports: [CommonModule, GridComponent, MatDialogModule, MatButtonModule],
   templateUrl: './game.html',
   styleUrls: ['./game.scss']

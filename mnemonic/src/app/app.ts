@@ -4,8 +4,7 @@ import {GameComponent} from './components/game/game';
 
 @Component({
   selector: 'app-root',
-  standalone: true, // Added standalone: true
-  imports: [CommonModule, GameComponent], // Added CommonModule
+  imports: [CommonModule, GameComponent],
   templateUrl: './app.html',
   styleUrl: './app.scss'
 })
