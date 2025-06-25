@@ -1,26 +1,20 @@
-// Import the custom Angular Material theme
-@use './assets/theme.scss' as theme;
+// Custom Theming for Angular Material
+// For more information: https://material.angular.dev/guide/theming
 @use '@angular/material' as mat;
-
+@use './assets/_theme.scss' as theme;
 @include mat.core();
 
-$angular-material-3-theme: mat.define-theme(
-    (
-      color: (
-        theme-type: light,
-        primary: mat.$azure-palette,
-        tertiary: mat.$blue-palette,
-      ),
-      density: (
-        scale: 0,
-      ),
-    )
-);
 
-:root {
-  @include mat.all-component-themes($angular-material-3-theme);
+html {
+  color-scheme: light dark;
+  @include mat.theme((
+    color: theme.$primary-palette,
+    typography: Roboto,
+    density: 0
+  ));
 }
 
+// General body styles
 body {
   margin: 0;
   font-family: sans-serif;
@@ -62,3 +56,6 @@ body {
 .main-container {
   padding-top: 50px;
 }
+
+html, body { height: 100%; }
+body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
