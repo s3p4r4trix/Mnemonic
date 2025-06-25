@@ -1,44 +1,41 @@
-@import '@angular/material/prebuilt-themes/deeppurple-amber.css';
+// Import the custom Angular Material theme
+@use './assets/theme.scss';
 
+// Minimal CSS variables for elements not themed by Angular Material,
+// like the theme toggle button, and for base page styling if needed.
+// The main M3 theme variables are now in custom-material-theme.scss,
+// scoped to .light-theme and .dark-theme.
 :root {
-  --background-color: #ffffff;
-  --text-color: #333333;
-  --primary-color: #007bff;
-  --tile-bg: #e0e0e0;
-  --tile-lit-bg: #ffeb3b;
-  --grid-bg: #f5f5f5;
+  // General page background and text color, will be overridden by Material theme on body.
+  // Kept for base HTML and non-Material parts.
+  --page-background-color: #ffffff;
+  --page-text-color: #333333;
+
+  // Variables for the custom theme toggle button
   --button-border-color: #007bff;
   --button-bg-color: #ffffff;
   --button-text-color: #007bff;
-  --tile-hover-bg: #d5d5d5;
-  --tile-selected-bg: #64b5f6;
-  --tile-selected-border: #1976d2;
-  --tile-correct-selected-bg: #81c784;
-  --tile-correct-selected-border: #388e3c;
 }
 
 .dark-theme {
-  --background-color: #121212;
-  --text-color: #e0e0e0;
-  --primary-color: #bb86fc;
-  --tile-bg: #333333;
-  --tile-lit-bg: #f9a825;
-  --grid-bg: #222222;
+  // General page background and text color for dark mode
+  --page-background-color: #121212;
+  --page-text-color: #e0e0e0;
+
+  // Variables for the custom theme toggle button in dark mode
   --button-border-color: #bb86fc;
   --button-bg-color: #121212;
   --button-text-color: #bb86fc;
-  --tile-hover-bg: #4f4f4f;
-  --tile-selected-bg: #0277bd;
-  --tile-selected-border: #01579b;
-  --tile-correct-selected-bg: #2e7d32;
-  --tile-correct-selected-border: #1b5e20;
 }
 
 body {
   margin: 0;
   font-family: sans-serif;
-  background-color: var(--background-color);
-  color: var(--text-color);
+  // Use page-specific variables for base body styling.
+  // Angular Material components will use their own theme variables from custom-material-theme.scss.
+  // The classes .light-theme or .dark-theme applied to the body will provide Material's variables.
+  background-color: var(--page-background-color);
+  color: var(--page-text-color);
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 

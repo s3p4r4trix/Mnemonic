@@ -1,0 +1,295 @@
+@use '@angular/material' as mat;
+
+// Define base palettes using the main colors from the CSS variables.
+// These palettes allow us to integrate with Angular Material's theme system.
+
+// Light Theme Colors
+$light-primary-color: rgb(95, 87, 144);
+$light-on-primary-color: rgb(255, 255, 255);
+$light-accent-color: rgb(96, 92, 113);
+$light-on-accent-color: rgb(255, 255, 255);
+$light-warn-color: rgb(186, 26, 26);
+$light-on-warn-color: rgb(255, 255, 255);
+
+// Dark Theme Colors
+$dark-primary-color: rgb(201, 191, 255);
+$dark-on-primary-color: rgb(49, 40, 95);
+$dark-accent-color: rgb(201, 195, 220);
+$dark-on-accent-color: rgb(49, 46, 65);
+$dark-warn-color: rgb(255, 180, 171);
+$dark-on-warn-color: rgb(105, 0, 5);
+
+// Define palettes as SASS maps directly.
+$custom-light-primary: (
+  500: $light-primary-color,
+  contrast: (
+    500: $light-on-primary-color,
+  )
+);
+
+$custom-light-accent: (
+  500: $light-accent-color,
+  contrast: (
+    500: $light-on-accent-color,
+  )
+);
+
+$custom-light-warn: (
+  500: $light-warn-color,
+  contrast: (
+    500: $light-on-warn-color,
+  )
+);
+
+$custom-dark-primary: (
+  500: $dark-primary-color,
+  contrast: (
+    500: $dark-on-primary-color,
+  )
+);
+
+$custom-dark-accent: (
+  500: $dark-accent-color,
+  contrast: (
+    500: $dark-on-accent-color,
+  )
+);
+
+$custom-dark-warn: (
+  500: $dark-warn-color,
+  contrast: (
+    500: $dark-on-warn-color,
+  )
+);
+
+// Zusätzliche Farbwerte für das Material Design 3 Schema
+$light-background-color: rgb(253, 248, 255);
+$light-on-background-color: rgb(28, 27, 32);
+$light-surface-color: rgb(253, 248, 255);
+$light-on-surface-color: rgb(28, 27, 32);
+
+$dark-background-color: rgb(20, 19, 24);
+$dark-on-background-color: rgb(229, 225, 233);
+$dark-surface-color: rgb(20, 19, 24);
+$dark-on-surface-color: rgb(229, 225, 233);
+
+// NEU: Standardisierte Hintergrund- und Vordergrund-Paletten.
+// Wir definieren diese Werte direkt, da die alten Material-Paletten nicht mehr verfügbar sind.
+// Die Farben sind an die M3-Variablen angelehnt oder sind typische Standardwerte.
+$mat-light-background: (
+  status-bar: lighten($light-background-color, 3%), // Leichter als der Hintergrund
+  app-bar: $light-background-color,
+  background: $light-background-color,
+  hover: rgba(black, 0.04),
+  card: $light-surface-color,
+  dialog: $light-surface-color,
+  disabled-button: rgba(black, 0.12),
+  disabled-text: rgba(black, 0.38),
+  divider: rgba(black, 0.12),
+  text: rgba(black, 0.87),
+  slider-min: rgba(black, 0.87),
+  slider-off: rgba(black, 0.26),
+  slider-off-active: rgba(black, 0.38),
+);
+
+$mat-light-foreground: (
+  base: black,
+  divider: rgba(black, 0.12),
+  dividers: rgba(black, 0.12),
+  disabled-button: rgba(black, 0.26),
+  disabled-text: rgba(black, 0.38),
+  elevation: black,
+  hint-text: rgba(black, 0.38),
+  secondary-text: rgba(black, 0.54),
+  icon: rgba(black, 0.54),
+  icons: rgba(black, 0.54),
+  text: rgba(black, 0.87),
+  slider-off: rgba(black, 0.26),
+  slider-off-active: rgba(black, 0.38),
+);
+
+$mat-dark-background: (
+  status-bar: darken($dark-background-color, 3%), // Dunkler als der Hintergrund
+  app-bar: $dark-background-color,
+  background: $dark-background-color,
+  hover: rgba(white, 0.04),
+  card: $dark-surface-color,
+  dialog: $dark-surface-color,
+  disabled-button: rgba(white, 0.12),
+  disabled-text: rgba(white, 0.38),
+  divider: rgba(white, 0.12),
+  text: rgba(white, 0.87),
+  slider-min: rgba(white, 0.87),
+  slider-off: rgba(white, 0.26),
+  slider-off-active: rgba(white, 0.38),
+);
+
+$mat-dark-foreground: (
+  base: white,
+  divider: rgba(white, 0.12),
+  dividers: rgba(white, 0.12),
+  disabled-button: rgba(white, 0.26),
+  disabled-text: rgba(white, 0.38),
+  elevation: black,
+  hint-text: rgba(white, 0.38),
+  secondary-text: rgba(white, 0.54),
+  icon: rgba(white, 0.54),
+  icons: rgba(white, 0.54),
+  text: rgba(white, 0.87),
+  slider-off: rgba(white, 0.26),
+  slider-off-active: rgba(white, 0.38),
+);
+
+
+// Definiere die Theme-Objekte direkt als Sass-Maps.
+$custom-light-theme: (
+  color: (
+    primary: $custom-light-primary,
+    accent: $custom-light-accent,
+    warn: $custom-light-warn,
+    background: (
+      default: $light-background-color,
+      on-background: $light-on-background-color,
+    ),
+    surface: (
+      default: $light-surface-color,
+      on-surface: $light-on-surface-color,
+    ),
+  ),
+  typography: (),
+  density: 0,
+  foreground: $mat-light-foreground,
+  background: $mat-light-background,
+);
+
+$custom-dark-theme: (
+  color: (
+    primary: $custom-dark-primary,
+    accent: $custom-dark-accent,
+    warn: $custom-dark-warn,
+    background: (
+      default: $dark-background-color,
+      on-background: $dark-on-background-color,
+    ),
+    surface: (
+      default: $dark-surface-color,
+      on-surface: $dark-on-surface-color,
+    ),
+  ),
+  typography: (),
+  density: 0,
+  foreground: $mat-dark-foreground,
+  background: $mat-dark-background,
+);
+
+// Wende das Light Theme und seine M3 Custom Properties an.
+.light-theme {
+  @include mat.all-component-themes($custom-light-theme);
+
+  // Embed light theme M3 variables (diese sind korrekt und nötig)
+  --md-sys-color-primary: rgb(95 87 144);
+  --md-sys-color-surface-tint: rgb(95 87 144);
+  --md-sys-color-on-primary: rgb(255 255 255);
+  --md-sys-color-primary-container: rgb(229 222 255);
+  --md-sys-color-on-primary-container: rgb(71 63 119);
+  --md-sys-color-secondary: rgb(96 92 113);
+  --md-sys-color-on-secondary: rgb(255 255 255);
+  --md-sys-color-secondary-container: rgb(229 223 249);
+  --md-sys-color-on-secondary-container: rgb(72 68 89);
+  --md-sys-color-tertiary: rgb(124 82 100);
+  --md-sys-color-on-tertiary: rgb(255 255 255);
+  --md-sys-color-tertiary-container: rgb(255 216 230);
+  --md-sys-color-on-tertiary-container: rgb(98 59 76);
+  --md-sys-color-error: rgb(186 26 26);
+  --md-sys-color-on-error: rgb(255 255 255);
+  --md-sys-color-error-container: rgb(255 218 214);
+  --md-sys-color-on-error-container: rgb(147 0 10);
+  --md-sys-color-background: rgb(253 248 255);
+  --md-sys-color-on-background: rgb(28 27 32);
+  --md-sys-color-surface: rgb(253 248 255);
+  --md-sys-color-on-surface: rgb(28 27 32);
+  --md-sys-color-surface-variant: rgb(229 224 236);
+  --md-sys-color-on-surface-variant: rgb(72 69 78);
+  --md-sys-color-outline: rgb(121 117 127);
+  --md-sys-color-outline-variant: rgb(201 197 208);
+  --md-sys-color-shadow: rgb(0 0 0);
+  --md-sys-color-scrim: rgb(0 0 0);
+  --md-sys-color-inverse-surface: rgb(49 47 54);
+  --md-sys-color-inverse-on-surface: rgb(244 239 247);
+  --md-sys-color-inverse-primary: rgb(201 191 255);
+  --md-sys-color-primary-fixed: rgb(229 222 255);
+  --md-sys-color-on-primary-fixed: rgb(27 17 73);
+  --md-sys-color-primary-fixed-dim: rgb(201 191 255);
+  --md-sys-color-on-primary-fixed-variant: rgb(71 63 119);
+  --md-sys-color-secondary-fixed: rgb(229 223 249);
+  --md-sys-color-on-secondary-fixed: rgb(28 25 43);
+  --md-sys-color-secondary-fixed-dim: rgb(201 195 220);
+  --md-sys-color-on-secondary-fixed-variant: rgb(72 68 89);
+  --md-sys-color-tertiary-fixed: rgb(255 216 230);
+  --md-sys-color-on-tertiary-fixed: rgb(48 17 32);
+  --md-sys-color-tertiary-fixed-dim: rgb(237 184 205);
+  --md-sys-color-on-tertiary-fixed-variant: rgb(98 59 76);
+  --md-sys-color-surface-dim: rgb(221 216 224);
+  --md-sys-color-surface-bright: rgb(253 248 255);
+  --md-sys-color-surface-container-lowest: rgb(255 255 255);
+  --md-sys-color-surface-container-low: rgb(247 242 250);
+  --md-sys-color-surface-container: rgb(241 236 244);
+  --md-sys-color-surface-container-high: rgb(235 230 238);
+  --md-sys-color-surface-container-highest: rgb(229 225 233);
+}
+
+// Wende das Dark Theme und seine M3 Custom Properties an
+.dark-theme {
+  @include mat.all-component-themes($custom-dark-theme);
+
+  // Embed dark theme M3 variables
+  --md-sys-color-primary: rgb(201 191 255);
+  --md-sys-color-surface-tint: rgb(201 191 255);
+  --md-sys-color-on-primary: rgb(49 40 95);
+  --md-sys-color-primary-container: rgb(71 63 119);
+  --md-sys-color-on-primary-container: rgb(229 222 255);
+  --md-sys-color-secondary: rgb(201 195 220);
+  --md-sys-color-on-secondary: rgb(49 46 65);
+  --md-sys-color-secondary-container: rgb(72 68 89);
+  --md-sys-color-on-secondary-container: rgb(229 223 249);
+  --md-sys-color-tertiary: rgb(237 184 205);
+  --md-sys-color-on-tertiary: rgb(72 37 54);
+  --md-sys-color-tertiary-container: rgb(98 59 76);
+  --md-sys-color-on-tertiary-container: rgb(255 216 230);
+  --md-sys-color-error: rgb(255 180 171);
+  --md-sys-color-on-error: rgb(105 0 5);
+  --md-sys-color-error-container: rgb(147 0 10);
+  --md-sys-color-on-error-container: rgb(255 218 214);
+  --md-sys-color-background: rgb(20 19 24);
+  --md-sys-color-on-background: rgb(229 225 233);
+  --md-sys-color-surface: rgb(20 19 24);
+  --md-sys-color-on-surface: rgb(229 225 233);
+  --md-sys-color-surface-variant: rgb(72 69 78);
+  --md-sys-color-on-surface-variant: rgb(201 197 208);
+  --md-sys-color-outline: rgb(147 143 153);
+  --md-sys-color-outline-variant: rgb(72 69 78);
+  --md-sys-color-shadow: rgb(0 0 0);
+  --md-sys-color-scrim: rgb(0 0 0);
+  --md-sys-color-inverse-surface: rgb(229 225 233);
+  --md-sys-color-inverse-on-surface: rgb(49 47 54);
+  --md-sys-color-inverse-primary: rgb(95 87 144);
+  --md-sys-color-primary-fixed: rgb(229 222 255);
+  --md-sys-color-on-primary-fixed: rgb(27 17 73);
+  --md-sys-color-primary-fixed-dim: rgb(201 191 255);
+  --md-sys-color-on-primary-fixed-variant: rgb(71 63 119);
+  --md-sys-color-secondary-fixed: rgb(229 223 249);
+  --md-sys-color-on-secondary-fixed: rgb(28 25 43);
+  --md-sys-color-secondary-fixed-dim: rgb(201 195 220);
+  --md-sys-color-on-secondary-fixed-variant: rgb(72 68 89);
+  --md-sys-color-tertiary-fixed: rgb(255 216 230);
+  --md-sys-color-on-tertiary-fixed: rgb(48 17 32);
+  --md-sys-color-tertiary-fixed-dim: rgb(237 184 205);
+  --md-sys-color-on-tertiary-fixed-variant: rgb(98 59 76);
+  --md-sys-color-surface-dim: rgb(20 19 24);
+  --md-sys-color-surface-bright: rgb(58 56 62);
+  --md-sys-color-surface-container-lowest: rgb(14 13 19);
+  --md-sys-color-surface-container-low: rgb(28 27 32);
+  --md-sys-color-surface-container: rgb(32 31 37);
+  --md-sys-color-surface-container-high: rgb(43 41 47);
+  --md-sys-color-surface-container-highest: rgb(53 52 58);
+}

@@ -20,7 +20,7 @@ export class App implements OnInit {
     if (storedTheme) {
       this.currentTheme.set(storedTheme);
     }
-    this.updateBodyClass();
+    this.#updateBodyClass();
     this.preventDoubleTapZoom();
   }
 
@@ -38,13 +38,16 @@ export class App implements OnInit {
   toggleTheme(): void {
     this.currentTheme.update(current => (current === 'light' ? 'dark' : 'light'));
     localStorage.setItem('theme', this.currentTheme());
-    this.updateBodyClass();
+    this.#updateBodyClass();
   }
 
-  private updateBodyClass(): void {
+  #updateBodyClass(): void {
     this.document.body.classList.remove('dark-theme', 'light-theme'); // Remove both for clean slate
     if (this.currentTheme() === 'dark') {
       this.document.body.classList.add('dark-theme');
+    }
+    if (this.currentTheme() === 'light') {
+      this.document.body.classList.add('light-theme');
     }
   }
 
