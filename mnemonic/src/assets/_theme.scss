@@ -60,7 +60,6 @@ $dark-warn: (
   )
 );
 
-// Zusätzliche Farbwerte für das Material Design 3 Schema
 $light-background-color: rgb(253, 248, 255);
 $light-on-background-color: rgb(28, 27, 32);
 $light-surface-color: rgb(253, 248, 255);
@@ -70,12 +69,6 @@ $dark-background-color: rgb(20, 19, 24);
 $dark-on-background-color: rgb(229, 225, 233);
 $dark-surface-color: rgb(20, 19, 24);
 $dark-on-surface-color: rgb(229, 225, 233);
-
-// Definiere die Theme-Objekte direkt als Sass-Maps for M3.
-// Pass only primary, accent, warn palettes to the 'color' map.
-// Typography and density are defined at the root of the theme map.
-
-// $custom-light-theme and $custom-dark-theme are now defined in styles.scss
 
 .light-theme {
   --md-sys-color-primary: rgb(95 87 144);

@@ -1,8 +1,6 @@
 @use '@angular/material' as mat;
 
 :host {
-  // Dialogs typically use a surface color from the M3 system.
-  // surface-container-high or -highest are good candidates for dialogs.
   background-color: var(--md-sys-color-surface-container-high);
   border: 1px solid var(--md-sys-color-outline-variant);
   border-radius: 12px;
@@ -22,10 +20,16 @@
   margin-bottom: 8px;
 }
 
+.game-over {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
 .final-score-label {
   font-size: 1.1rem;
   color: var(--md-sys-color-on-surface-variant);
-  margin-bottom: 0;
+  margin-bottom: 4px;
   margin-top: 8px;
 }
 
@@ -36,14 +40,13 @@
   color: var(--md-sys-color-primary);
 }
 
-.stats-container { // Renamed for clarity
+.stats-container {
   display: flex;
   flex-direction: column;
   justify-content: space-around;
   width: 100%;
-  background-color: var(--md-sys-color-surface-container);
   border-radius: 8px;
-  padding: 12px; // Added padding
+  padding: 12px;
   gap: 8px;
 }
 
@@ -52,14 +55,3 @@
   font-size: 0.9rem;
   color: var(--md-sys-color-on-surface-variant);
 }
-
-// Assuming .play-again is an Angular Material button (e.g., <button mat-flat-button color="primary">)
-// The MDC variables are no longer needed as the button should inherit from the global theme.
-// .play-again {
-//   --mdc-protected-button-container-color: var(--button-bg-color); // REMOVE
-//   --mdc-protected-button-label-text-color: var(--button-text-color); // REMOVE
-// }
-// If specific styling is still needed for the button beyond standard mat-button theming,
-// it should be done carefully, possibly using ::ng-deep if absolutely necessary,
-// or by applying a custom class and styling that class with M3 variables.
-// For now, we assume the button will be styled correctly by the global Material theme.

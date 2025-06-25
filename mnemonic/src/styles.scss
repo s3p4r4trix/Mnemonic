@@ -1,57 +1,60 @@
 // Import the custom Angular Material theme
-@use './assets/theme.scss' as theme; // Alias the import
-@use '@angular/material' as mat; // Import Angular Material
+@use './assets/theme.scss' as theme;
+@use '@angular/material' as mat;
 
-// Apply core Material styles (typography, density, etc.)
 @include mat.core();
 
-// Minimal CSS variables for elements not themed by Angular Material,
-// like the theme toggle button, and for base page styling if needed.
-// The main M3 theme variables are now in custom-material-theme.scss,
-// scoped to .light-theme and .dark-theme.
+$angular-material-3-theme: mat.define-theme(
+    (
+      color: (
+        theme-type: light,
+        primary: mat.$azure-palette,
+        tertiary: mat.$blue-palette,
+      ),
+      density: (
+        scale: 0,
+      ),
+    )
+);
+
+:root {
+  @include mat.all-component-themes($angular-material-3-theme);
+}
 
 body {
   margin: 0;
   font-family: sans-serif;
-  // Use M3 CSS variables for base body styling.
-  // These variables are defined in _theme.scss and applied via .light-theme or .dark-theme on the body.
   background-color: var(--md-sys-color-background);
   color: var(--md-sys-color-on-background);
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-// Define a mixin to apply all component themes and core theme properties
-@mixin apply-app-theme($app-theme) {
-  // Apply the color theme to Angular Material components
-  @include mat.all-component-themes($app-theme);
-}
-
 #theme-toggle-button {
   position: fixed;
-  top: 16px; // Adjusted for better spacing with potential browser UI
-  right: 16px; // Adjusted for better spacing
-  padding: 8px 16px; // Slightly more padding
+  top: 16px;
+  right: 16px;
+  padding: 8px 16px;
   cursor: pointer;
-  border: 1px solid var(--md-sys-color-outline); // Use outline color for border
-  background-color: var(--md-sys-color-surface-container-low); // A slightly elevated surface
-  color: var(--md-sys-color-primary); // Use primary color for text
-  border-radius: 8px; // Slightly more rounded
-  z-index: 1000; // Ensure it's on top
-  font-family: inherit; // Inherit body font
-  font-size: 0.875rem; // Consistent with some Material text styles
-  font-weight: 500; // Medium weight
-  box-shadow: var(--md-sys-color-shadow) 0 1px 3px; // Subtle shadow
+  border: 1px solid var(--md-sys-color-outline);
+  background-color: var(--md-sys-color-surface-container-low);
+  color: var(--md-sys-color-primary);
+  border-radius: 8px;
+  z-index: 1000;
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 500;
+  box-shadow: var(--md-sys-color-shadow) 0 1px 3px;
 
   transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
 
   &:hover {
-    background-color: var(--md-sys-color-surface-container); // Slightly darker/lighter on hover
-    border-color: var(--md-sys-color-primary); // Primary color for border on hover
-    box-shadow: var(--md-sys-color-shadow) 0 2px 6px; // Slightly more pronounced shadow
+    background-color: var(--md-sys-color-surface-container);
+    border-color: var(--md-sys-color-primary);
+    box-shadow: var(--md-sys-color-shadow) 0 2px 6px;
   }
 
   &:active {
-    background-color: var(--md-sys-color-surface-container-high); // Even more interaction indication
+    background-color: var(--md-sys-color-surface-container-high);
   }
 }
 
