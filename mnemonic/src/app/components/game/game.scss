@@ -5,40 +5,12 @@
   color: var(--md-sys-color-primary);
 }
 
-.start-button {
-  padding: 10px 20px; // Adjusted padding for better feel
-  cursor: pointer;
-  border: 1px solid var(--md-sys-color-outline);
-  background-color: var(--md-sys-color-primary);
-  color: var(--md-sys-color-on-primary);
-  border-radius: 8px; // Consistent with theme button
-  display: block;
-  margin: 20px auto;
-  font-size: 1rem;
-  font-weight: 500;
-  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
-  box-shadow: var(--md-sys-color-shadow) 0 1px 2px;
-
-  &:hover {
-    background-color: var(--md-sys-color-primary-container);
-    color: var(--md-sys-color-on-primary-container);
-    border-color: var(--md-sys-color-primary-container);
-    box-shadow: var(--md-sys-color-shadow) 0 2px 4px;
-  }
-
-  &:active {
-    // Consider a different shade or effect for active state if needed
-    background-color: var(--md-sys-color-primary-container); // Example
-  }
-}
-
-// Styles for game messages, stats, etc.
 .game-area {
   display: flex;
   flex-direction: column;
   align-items: center;
   padding: 20px;
-  gap: 20px; // Added gap for spacing children
+  gap: 20px;
 }
 
 .stats {
@@ -47,16 +19,17 @@
   width: 100%;
   max-width: 400px;
   padding: 16px;
-  background-color: var(--md-sys-color-surface-container-low);
+  background-color: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
   border-radius: 12px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05); // Softer shadow, or use M3 elevation tokens if available/preferred
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
 
 .stats p {
-  margin: 0; // Removed default margin
+  margin: 0;
   padding: 4px 8px;
   font-size: 0.9rem;
-  color: var(--md-sys-color-on-surface-variant);
+  color: var(--md-sys-color-on-surface);
 }
 
 .message {
@@ -66,5 +39,5 @@
   font-size: 1.2rem;
   font-weight: bold;
   color: var(--md-sys-color-primary);
-  text-align: center; // Ensure text is centered
+  text-align: center;
 }

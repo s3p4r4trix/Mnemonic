@@ -1,10 +1,11 @@
 import {Component, inject, OnInit, signal} from '@angular/core';
 import {CommonModule, DOCUMENT} from '@angular/common';
 import {GameComponent} from './components/game/game';
+import {MatButton} from '@angular/material/button';
 
 @Component({
   selector: 'app-root',
-  imports: [CommonModule, GameComponent],
+  imports: [CommonModule, GameComponent, MatButton],
   templateUrl: './app.html',
   styleUrl: './app.scss'
 })
@@ -41,12 +42,12 @@ export class App implements OnInit {
   }
 
   #updateBodyClass(): void {
-    this.document.body.classList.remove('dark-theme', 'light-theme'); // Remove both for clean slate
+    this.document.body.classList.remove('dark', 'light'); // Remove both for clean slate
     if (this.currentTheme() === 'dark') {
-      this.document.body.classList.add('dark-theme');
+      this.document.body.classList.add('dark');
     }
     if (this.currentTheme() === 'light') {
-      this.document.body.classList.add('light-theme');
+      this.document.body.classList.add('light');
     }
   }
 

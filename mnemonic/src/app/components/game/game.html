@@ -6,7 +6,7 @@
   </div>
 
   @if (gameService.gameState() === 'idle' || gameService.gameState() === 'over') {
-    <button class="start-button" (click)="startGame()">
+    <button mat-raised-button color="primary" (click)="startGame()">
       Start Game
     </button>
   }

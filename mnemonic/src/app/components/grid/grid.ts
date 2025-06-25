@@ -24,7 +24,6 @@ import {CommonModule} from "@angular/common";
       background-color: var(--grid-bg);
       border-radius: 10px;
       width: fit-content;
-      box-shadow: inset 2px 2px 5px rgba(0,0,0,0.1);
     }
   `]
 })
