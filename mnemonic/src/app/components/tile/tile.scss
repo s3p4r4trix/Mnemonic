@@ -34,9 +34,9 @@
 
 .tile.correct-clicked {
   // Using tertiary for "correct" indication. Could also be a custom "success" color if defined.
-  background-color: var(--md-sys-color-tertiary-container);
-  border-color: var(--md-sys-color-tertiary);
-  color: var(--md-sys-color-on-tertiary-container);
+  background-color: var(--md-sys-color-inverse-primary);
+  border-color: var(--md-sys-color-inverse-surface);
+  color: var(--md-sys-color-inverse-primary);
 }
 
 .tile.correct-not-clicked {
@@ -45,7 +45,7 @@
   // Use a dashed border with a color indicating it was "missed but correct"
   // Primary color might be too strong; outline or a less saturated color could work.
   border: 2px dashed var(--md-sys-color-outline);
-  // Potentially reduce opacity or add an icon to differentiate further
+  opacity: 0.8;
 }
 
 .tile.incorrect-clicked {
