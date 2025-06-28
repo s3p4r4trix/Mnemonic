@@ -5,12 +5,18 @@
 
 
 html {
-  color-scheme: light dark;
+  color-scheme: light;
   @include mat.theme((
     color: theme.$primary-palette,
+    tertiary: theme.$tertiary-palette,
+    theme-type: light,
     typography: Roboto,
     density: 0
   ));
+}
+
+body.dark {
+  color-scheme: dark;
 }
 
 // General body styles
