@@ -7,6 +7,8 @@ import {Tile} from '../models/tile.model';
 export class GameService {
   // Game State
   currentLevel = signal(1);
+  correctlyClickedTilesInSequence = signal(0);
+  correctlyClickedTilesNotInSequence = signal(0);
   score = signal(0);
   gameState = signal<"idle" | "sequence" | "input" | "checking" | "over">("idle");
 
@@ -25,7 +27,6 @@ export class GameService {
   // Sequence and Player Input
   #sequence: number[] = [];
   #playerInput: number[] = [];
-  #isInCombo = false;
 
   constructor() {
     this.initializeGrid();
@@ -43,10 +44,11 @@ export class GameService {
 
   startGame(): void {
     this.currentLevel.set(1);
-    this.score.set(0);
-    this.#isInCombo = false;
+    this.correctlyClickedTilesInSequence.set(0);
+    this.correctlyClickedTilesNotInSequence.set(0);
     this.numTilesToLight.set(3);
     this.gridSize.set(3);
+    this.score.set(0);
     this.initializeGrid();
     this.nextRound();
     this.gameState.set("sequence");
@@ -55,8 +57,8 @@ export class GameService {
   // Reset game
   resetGame(): void {
     this.currentLevel.set(1);
-    this.score.set(0);
-    this.#isInCombo = false;
+    this.correctlyClickedTilesInSequence.set(0);
+    this.correctlyClickedTilesNotInSequence.set(0);
     this.numTilesToLight.set(3);
     this.gridSize.set(3);
     this.gameState.set("idle");
@@ -84,7 +86,6 @@ export class GameService {
 
   nextRound(): void {
     this.#playerInput = [];
-    this.#isInCombo = true;
     this.tiles.update(tiles => tiles.map(t => ({ ...t, lit: false, selectedByPlayer: false, isCorrectAndClicked: false, isCorrectAndNotClicked: false, isIncorrectAndClicked: false })));
     this.#generateSequence();
     // Logic to display a sequence will be handled by components observing state
@@ -116,24 +117,6 @@ export class GameService {
       tiles.map(t => (t.id === tileId ? { ...t, selectedByPlayer: true } : t))
     );
 
-    const currentIndex = this.#playerInput.length - 1;
-    const isInSequence = this.#sequence[currentIndex] === tileId;
-    const isCorrectClick = this.#sequence.findIndex(id => id === tileId) !== -1;
-
-    if (isCorrectClick) {
-      // Check if tile clicked can score double
-      if (this.#isInCombo && isInSequence) {
-        this.score.update(s => s + 2);
-      } else {
-        // Disable combo logic
-        this.#isInCombo = false;
-        this.score.update(s => s + 1);
-      }
-    } else {
-      this.#isInCombo = false;
-      // Game over logic is handled in #checkRound when it checks for correctSelections
-    }
-
     // Check if player has made enough selections
     if (this.#playerInput.length === this.#sequence.length) {
       this.#checkRound();
@@ -142,6 +125,28 @@ export class GameService {
 
   #checkRound(): void {
     this.gameState.set("checking");
+
+    let inSequenceCount = 0;
+    let notInSequenceCount = 0;
+
+    // Calculate scores based on player input compared to the sequence
+    for (let i = 0; i < this.#playerInput.length; i++) {
+      const tileId = this.#playerInput[i];
+      if (this.#sequence.includes(tileId)) { // Check if the clicked tile is part of the correct sequence
+        if (this.#sequence[i] === tileId) { // Check if the clicked tile is in the correct order
+          inSequenceCount++;
+        } else {
+          notInSequenceCount++;
+        }
+      }
+      // Incorrect clicks (not in sequence at all) do not add to score as per new logic.
+    }
+
+    this.correctlyClickedTilesInSequence.update(s => s + inSequenceCount);
+    this.correctlyClickedTilesNotInSequence.update(s => s + notInSequenceCount);
+    this.score.update(s => s + (inSequenceCount * 2) + notInSequenceCount);
+
+
     const correctSelections = this.#playerInput.every(id => this.#sequence.includes(id)) &&
       this.#playerInput.length === this.#sequence.length &&
       this.#sequence.every(id => this.#playerInput.includes(id));
@@ -156,9 +161,10 @@ export class GameService {
         this.gridSize.update(g => g + 1);
       }
       this.initializeGrid(); // Re-initialize grid for new size if it changed
+      // Reset scores for the new round, but they are computed, so this happens implicitly
+      // by resetting playerInput and generating a new sequence.
       this.nextRound(); // Start next round
     } else {
-      this.#isInCombo = false; // Reset combo on incorrect round
       // Update tiles with final states before setting the game to over
       const sequence = this.#sequence;
       const playerInput = this.#playerInput;

@@ -3,13 +3,15 @@
   <div class="stats-container">
     <p>Level: {{ gameService.currentLevel() }}</p>
     <p>Tiles to remember: {{ gameService.numTilesToLight() }}</p>
+    <p>Correctly clicked in sequence: {{ correctlyClickedTilesInSequence() }}</p>
+    <p>Correctly clicked not in sequence: {{ correctlyClickedTilesNotInSequence() }}</p>
 
     <span class="final-score-label">Final Score:</span>
     <span class="final-score-value">{{ gameService.score() }}</span>
   </div>
 </div>
 <div mat-dialog-actions align="end">
-  <button mat-flat-button color="accent" (click)="onClose()">Close</button>
-  <button mat-stroked-button color="primary" (click)="onRetryLevel()" class="retry-button">Retry Level</button>
-  <button mat-flat-button color="primary" (click)="onPlayAgain()">Play Again</button>
+  <button matButton (click)="onClose()">Close</button>
+  <button matButton="tonal" (click)="onRetryLevel()" class="retry-button">Retry Level</button>
+  <button matButton="filled" (click)="onPlayAgain()">Play Again</button>
 </div>
