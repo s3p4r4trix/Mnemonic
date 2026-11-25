@@ -253,6 +253,16 @@ async function main() {
     await cdp.eval(`document.querySelector('#mute-toggle-button')?.click()`);
     await sleep(100);
 
+    // 2b. Select Speed preset and toggle progressive speed-up
+    await cdp.eval(`document.querySelector('[aria-label="Speed preset"] button:nth-child(3)')?.click()`);
+    await cdp.eval(`document.querySelector('button.progressive-toggle')?.click()`);
+    await sleep(100);
+    const speedSelected = await cdp.eval(`({
+      presetChecked: document.querySelector('[aria-label="Speed preset"] button:nth-child(3)')?.getAttribute('aria-checked'),
+      progressiveChecked: document.querySelector('button.progressive-toggle')?.getAttribute('aria-checked'),
+    })`);
+    assert.deepEqual(speedSelected, { presetChecked: 'true', progressiveChecked: 'true' });
+
     // 3. Start game and record the flashed sequence via MutationObserver
     await cdp.eval(`
       window.__recordedSeq = [];
@@ -352,6 +362,12 @@ async function main() {
     }
     const hudAfterReload = await cdp.eval(`document.querySelector('.stats')?.innerText?.replace(/\\s+/g, ' ').trim()`);
     assert.match(hudAfterReload, /BEST 6/i, 'Personal best should persist across page reload');
+
+    const speedAfterReload = await cdp.eval(`({
+      presetChecked: document.querySelector('[aria-label="Speed preset"] button:nth-child(3)')?.getAttribute('aria-checked'),
+      progressiveChecked: document.querySelector('button.progressive-toggle')?.getAttribute('aria-checked'),
+    })`);
+    assert.deepEqual(speedAfterReload, { presetChecked: 'true', progressiveChecked: 'true' }, 'Speed preset and progressive toggle should persist across page reload');
 
     await cdp.eval(`document.querySelector('#stats-button')?.click()`);
     await sleep(250);

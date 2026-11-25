@@ -1,10 +1,14 @@
 import {computed, DestroyRef, inject, Injectable, signal} from "@angular/core";
 import {GAME_MODE_CONFIGS, GameMode} from '../models/game-mode.model';
+import {computePlaybackTimings, isSpeedPreset, SpeedPreset} from '../models/speed-preset.model';
 import {Tile} from '../models/tile.model';
 import {SoundService} from './sound.service';
 import {StatsService} from './stats.service';
 
 export type GameState = "idle" | "sequence" | "input" | "checking" | "round-cleared" | "over";
+
+export const SPEED_PRESET_STORAGE_KEY = "mnemonic:speed-preset";
+export const PROGRESSIVE_SPEED_STORAGE_KEY = "mnemonic:progressive-speed";
 
 export function streakMultiplier(streak: number): number {
   if (streak <= 1) return 1;
@@ -22,7 +26,12 @@ export class GameService {
   // Game State
   mode = signal<GameMode>("classic");
   readonly modeConfig = computed(() => GAME_MODE_CONFIGS[this.mode()]);
+  speedPreset = signal<SpeedPreset>(this.#loadSpeedPreset());
+  progressiveSpeed = signal<boolean>(this.#loadProgressiveSpeed());
   currentLevel = signal(1);
+  readonly playbackTimings = computed(() =>
+    computePlaybackTimings(this.speedPreset(), this.currentLevel(), this.progressiveSpeed())
+  );
   correctlyClickedTilesInSequence = signal(0);
   correctlyClickedTilesNotInSequence = signal(0);
   score = signal(0);
@@ -98,6 +107,16 @@ export class GameService {
     this.#statsService.activeMode.set(mode);
     this.#resetRunState();
     this.gameState.set("idle");
+  }
+
+  setSpeedPreset(preset: SpeedPreset): void {
+    this.speedPreset.set(preset);
+    this.#saveStorageItem(SPEED_PRESET_STORAGE_KEY, preset);
+  }
+
+  setProgressiveSpeed(enabled: boolean): void {
+    this.progressiveSpeed.set(enabled);
+    this.#saveStorageItem(PROGRESSIVE_SPEED_STORAGE_KEY, String(enabled));
   }
 
   startGame(): void {
@@ -350,5 +369,32 @@ export class GameService {
   // Method to get the current sequence (e.g., for the grid component to light up tiles)
   getSequence(): ReadonlyArray<number> {
     return this.#sequence;
+  }
+
+  #loadSpeedPreset(): SpeedPreset {
+    const raw = this.#readStorageItem(SPEED_PRESET_STORAGE_KEY);
+    return isSpeedPreset(raw) ? raw : "normal";
+  }
+
+  #loadProgressiveSpeed(): boolean {
+    return this.#readStorageItem(PROGRESSIVE_SPEED_STORAGE_KEY) === "true";
+  }
+
+  #readStorageItem(key: string): string | null {
+    try {
+      return typeof localStorage !== "undefined" ? localStorage.getItem(key) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  #saveStorageItem(key: string, value: string): void {
+    try {
+      if (typeof localStorage !== "undefined") {
+        localStorage.setItem(key, value);
+      }
+    } catch {
+      // Ignore storage quota or privacy mode errors
+    }
   }
 }

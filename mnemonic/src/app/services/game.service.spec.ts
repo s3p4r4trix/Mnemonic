@@ -1,6 +1,12 @@
 import { provideZonelessChangeDetection } from "@angular/core";
 import { TestBed } from "@angular/core/testing";
-import { GameService, streakMultiplier } from "./game.service";
+import {
+  GameService,
+  PROGRESSIVE_SPEED_STORAGE_KEY,
+  SPEED_PRESET_STORAGE_KEY,
+  streakMultiplier,
+} from "./game.service";
+import { computePlaybackTimings } from "../models/speed-preset.model";
 import { SoundService } from "./sound.service";
 import { STATS_STORAGE_KEY, STATS_STORAGE_KEY_V2, StatsService } from "./stats.service";
 
@@ -13,6 +19,8 @@ describe("GameService", () => {
     localStorage.removeItem(STATS_STORAGE_KEY);
     localStorage.removeItem(STATS_STORAGE_KEY_V2);
     localStorage.removeItem("mnemonic:muted");
+    localStorage.removeItem(SPEED_PRESET_STORAGE_KEY);
+    localStorage.removeItem(PROGRESSIVE_SPEED_STORAGE_KEY);
     TestBed.configureTestingModule({
       providers: [provideZonelessChangeDetection(), GameService, StatsService, SoundService],
     });
@@ -25,6 +33,8 @@ describe("GameService", () => {
     localStorage.removeItem(STATS_STORAGE_KEY);
     localStorage.removeItem(STATS_STORAGE_KEY_V2);
     localStorage.removeItem("mnemonic:muted");
+    localStorage.removeItem(SPEED_PRESET_STORAGE_KEY);
+    localStorage.removeItem(PROGRESSIVE_SPEED_STORAGE_KEY);
   });
 
   it("should be created", () => {
@@ -412,6 +422,57 @@ describe("GameService", () => {
       expect(service.gameState()).toBe("round-cleared");
       expect(service.score()).toBe(3);
       expect(service.streak()).toBe(1);
+    });
+  });
+
+  describe("speed presets and progressive timing", () => {
+    it("should default to normal preset with progressive speed disabled", () => {
+      expect(service.speedPreset()).toBe("normal");
+      expect(service.progressiveSpeed()).toBeFalse();
+      expect(service.playbackTimings()).toEqual({
+        tileLitMs: 700,
+        tileGapMs: 300,
+        allLitMs: 1000,
+      });
+    });
+
+    it("should persist speed preset and progressive toggle in localStorage", () => {
+      service.setSpeedPreset("speed");
+      service.setProgressiveSpeed(true);
+
+      expect(localStorage.getItem(SPEED_PRESET_STORAGE_KEY)).toBe("speed");
+      expect(localStorage.getItem(PROGRESSIVE_SPEED_STORAGE_KEY)).toBe("true");
+
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({
+        providers: [provideZonelessChangeDetection(), GameService, StatsService, SoundService],
+      });
+      const reloaded = TestBed.inject(GameService);
+      expect(reloaded.speedPreset()).toBe("speed");
+      expect(reloaded.progressiveSpeed()).toBeTrue();
+    });
+
+    it("should fall back to normal preset when localStorage contains an invalid value", () => {
+      localStorage.setItem(SPEED_PRESET_STORAGE_KEY, "turbo-invalid");
+      localStorage.setItem(PROGRESSIVE_SPEED_STORAGE_KEY, "not-a-bool");
+
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({
+        providers: [provideZonelessChangeDetection(), GameService, StatsService, SoundService],
+      });
+      const reloaded = TestBed.inject(GameService);
+      expect(reloaded.speedPreset()).toBe("normal");
+      expect(reloaded.progressiveSpeed()).toBeFalse();
+    });
+
+    it("should tighten timings at higher levels when progressive is enabled and clamp at safe minimums", () => {
+      const level1 = computePlaybackTimings("normal", 1, true);
+      const level5 = computePlaybackTimings("normal", 5, true);
+      const level50 = computePlaybackTimings("speed", 50, true);
+
+      expect(level1).toEqual({ tileLitMs: 700, tileGapMs: 300, allLitMs: 1000 });
+      expect(level5).toEqual({ tileLitMs: 560, tileGapMs: 240, allLitMs: 800 });
+      expect(level50).toEqual({ tileLitMs: 248, tileGapMs: 100, allLitMs: 358 });
     });
   });
 });

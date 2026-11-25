@@ -1,5 +1,6 @@
 import {ChangeDetectionStrategy, Component, DestroyRef, effect, inject} from "@angular/core";
 import {GAME_MODES, GameMode} from "../../models/game-mode.model";
+import {SPEED_PRESETS, SpeedPreset} from "../../models/speed-preset.model";
 import {GameService} from "../../services/game.service";
 import {SoundService} from "../../services/sound.service";
 import {StatsService} from "../../services/stats.service";
@@ -9,9 +10,6 @@ import {MatDialog, MatDialogModule} from "@angular/material/dialog";
 import {MatButtonModule} from "@angular/material/button";
 import {GameOverDialogComponent} from "../game-over-dialog/game-over-dialog";
 
-const TILE_LIT_MS = 700;
-const TILE_GAP_MS = 300;
-const ALL_LIT_MS = 1000;
 const ROUND_CLEARED_MS = 800;
 
 @Component({
@@ -25,6 +23,7 @@ export class GameComponent {
   gameService = inject(GameService);
   statsService = inject(StatsService);
   readonly modes = GAME_MODES;
+  readonly speedPresets = SPEED_PRESETS;
   readonly #soundService = inject(SoundService);
   dialog = inject(MatDialog);
   readonly #destroyRef = inject(DestroyRef);
@@ -65,6 +64,14 @@ export class GameComponent {
     this.gameService.setMode(mode);
   }
 
+  selectSpeedPreset(preset: SpeedPreset): void {
+    this.gameService.setSpeedPreset(preset);
+  }
+
+  toggleProgressiveSpeed(): void {
+    this.gameService.setProgressiveSpeed(!this.gameService.progressiveSpeed());
+  }
+
   startGame(): void {
     this.gameService.startGame();
   }
@@ -77,17 +84,19 @@ export class GameComponent {
     const sequence = this.gameService.getSequence();
     if (!sequence || sequence.length === 0) return;
 
+    const timings = this.gameService.playbackTimings();
+
     if (this.gameService.modeConfig().playback === "sequential") {
       // Light up tiles one by one with ascending pentatonic tones
       for (let i = 0; i < sequence.length; i++) {
         if (token !== this.#playbackToken) return;
         this.gameService.setLitTiles([sequence[i]]);
         this.#soundService.playStepTone(i, "sequence");
-        await this.#delay(TILE_LIT_MS);
+        await this.#delay(timings.tileLitMs);
 
         if (token !== this.#playbackToken) return;
         this.gameService.clearLitTiles();
-        await this.#delay(TILE_GAP_MS);
+        await this.#delay(timings.tileGapMs);
       }
     } else {
       this.#soundService.playStepTone(0, "sequence");
@@ -96,7 +105,7 @@ export class GameComponent {
     if (token !== this.#playbackToken) return;
     // All tiles in sequence light up together
     this.gameService.setLitTiles(sequence);
-    await this.#delay(ALL_LIT_MS);
+    await this.#delay(timings.allLitMs);
 
     if (token !== this.#playbackToken) return;
     this.gameService.completeSequencePlayback();
