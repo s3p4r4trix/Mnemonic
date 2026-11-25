@@ -103,3 +103,57 @@
   background-color: var(--md-sys-color-surface-container-high);
   color: var(--md-sys-color-on-surface-variant);
 }
+
+.mode-picker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  max-width: 420px;
+}
+
+.mode-selector {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  width: 100%;
+  padding: 4px;
+  border-radius: 12px;
+  background-color: var(--md-sys-color-surface-container-high);
+}
+
+.mode-pill {
+  border: none;
+  border-radius: 8px;
+  padding: 8px 6px;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  background-color: transparent;
+  color: var(--md-sys-color-on-surface-variant);
+  transition: background-color 0.15s ease, color 0.15s ease;
+
+  &:hover {
+    background-color: var(--md-sys-color-surface-container-highest, rgba(0, 0, 0, 0.06));
+  }
+
+  &.active {
+    background-color: var(--md-sys-color-primary);
+    color: var(--md-sys-color-on-primary);
+    font-weight: 600;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--md-sys-color-primary);
+    outline-offset: 1px;
+  }
+}
+
+.mode-description {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--md-sys-color-on-surface-variant);
+  text-align: center;
+}

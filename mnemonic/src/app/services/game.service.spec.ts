@@ -2,7 +2,7 @@ import { provideZonelessChangeDetection } from "@angular/core";
 import { TestBed } from "@angular/core/testing";
 import { GameService, streakMultiplier } from "./game.service";
 import { SoundService } from "./sound.service";
-import { STATS_STORAGE_KEY, StatsService } from "./stats.service";
+import { STATS_STORAGE_KEY, STATS_STORAGE_KEY_V2, StatsService } from "./stats.service";
 
 describe("GameService", () => {
   let service: GameService;
@@ -11,6 +11,7 @@ describe("GameService", () => {
 
   beforeEach(() => {
     localStorage.removeItem(STATS_STORAGE_KEY);
+    localStorage.removeItem(STATS_STORAGE_KEY_V2);
     localStorage.removeItem("mnemonic:muted");
     TestBed.configureTestingModule({
       providers: [provideZonelessChangeDetection(), GameService, StatsService, SoundService],
@@ -22,6 +23,7 @@ describe("GameService", () => {
 
   afterEach(() => {
     localStorage.removeItem(STATS_STORAGE_KEY);
+    localStorage.removeItem(STATS_STORAGE_KEY_V2);
     localStorage.removeItem("mnemonic:muted");
   });
 
@@ -338,6 +340,78 @@ describe("GameService", () => {
       expect(service.score()).toBe(0);
       expect(service.correctlyClickedTilesInSequence()).toBe(0);
       expect(service.correctlyClickedTilesNotInSequence()).toBe(0);
+    });
+  });
+
+  describe("Game Modes", () => {
+    it("should switch mode, sync StatsService activeMode, and reset an active run to idle", () => {
+      service.startGame();
+      expect(service.gameState()).toBe("sequence");
+
+      service.setMode("reverse");
+      expect(service.mode()).toBe("reverse");
+      expect(statsService.activeMode()).toBe("reverse");
+      expect(service.gameState()).toBe("idle");
+      expect(service.score()).toBe(0);
+      expect(service.currentLevel()).toBe(1);
+    });
+
+    it("should evaluate Reverse Recall in backward order and number Game Over review in expected tap order", () => {
+      service.setMode("reverse");
+      service.startGame();
+      const seq = [...service.getSequence()];
+      service.gameState.set("input");
+
+      [...seq].reverse().forEach(id => service.handlePlayerTileClick(id));
+      expect(service.gameState()).toBe("round-cleared");
+      expect(service.score()).toBe(6);
+      expect(service.streak()).toBe(1);
+
+      service.advanceToNextRound();
+      service.gameState.set("input");
+      const seq2 = [...service.getSequence()];
+      const wrong = service.tiles().find(t => !seq2.includes(t.id))!;
+      seq2.slice(0, seq2.length - 1).forEach(id => service.handlePlayerTileClick(id));
+      service.handlePlayerTileClick(wrong.id);
+
+      expect(service.gameState()).toBe("over");
+      const expected = [...seq2].reverse();
+      const firstTapTile = service.tiles().find(t => t.id === expected[0])!;
+      expect(firstTapTile.sequenceOrder).toBe(1);
+    });
+
+    it("should end Strict Order immediately on first wrong tap and clear immediately on exact sequence", () => {
+      service.setMode("strict");
+      service.startGame();
+      const seq = [...service.getSequence()];
+      service.gameState.set("input");
+
+      // Wrong order on first tap (clicking seq[1] instead of seq[0])
+      service.handlePlayerTileClick(seq[1]);
+      expect(service.gameState()).toBe("over");
+      expect(service.selectedCount()).toBe(1);
+
+      // Fresh run with exact order
+      service.startGame();
+      const seq2 = [...service.getSequence()];
+      service.gameState.set("input");
+      seq2.forEach(id => service.handlePlayerTileClick(id));
+
+      expect(service.gameState()).toBe("round-cleared");
+      expect(service.score()).toBe(6);
+      expect(service.streak()).toBe(1);
+    });
+
+    it("should clear Spatial Flash in any order and increment streak", () => {
+      service.setMode("spatial-flash");
+      service.startGame();
+      const seq = [...service.getSequence()];
+      service.gameState.set("input");
+
+      [...seq].reverse().forEach(id => service.handlePlayerTileClick(id));
+      expect(service.gameState()).toBe("round-cleared");
+      expect(service.score()).toBe(3);
+      expect(service.streak()).toBe(1);
     });
   });
 });

@@ -7,6 +7,39 @@
   max-width: 440px;
 }
 
+.stats-mode-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+  padding: 4px;
+  margin-bottom: 12px;
+  border-radius: 10px;
+  background-color: var(--md-sys-color-surface-container-high, var(--md-sys-color-primary-container));
+}
+
+.stats-mode-tab {
+  border: none;
+  border-radius: 7px;
+  padding: 6px 4px;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  background-color: transparent;
+  color: var(--md-sys-color-on-surface-variant);
+
+  &.active {
+    background-color: var(--md-sys-color-primary);
+    color: var(--md-sys-color-on-primary);
+    font-weight: 600;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--md-sys-color-primary);
+    outline-offset: 1px;
+  }
+}
+
 .metrics-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

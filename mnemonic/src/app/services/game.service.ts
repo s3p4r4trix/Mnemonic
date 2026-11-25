@@ -1,4 +1,5 @@
 import {computed, DestroyRef, inject, Injectable, signal} from "@angular/core";
+import {GAME_MODE_CONFIGS, GameMode} from '../models/game-mode.model';
 import {Tile} from '../models/tile.model';
 import {SoundService} from './sound.service';
 import {StatsService} from './stats.service';
@@ -19,6 +20,8 @@ export class GameService {
   readonly #statsService = inject(StatsService);
 
   // Game State
+  mode = signal<GameMode>("classic");
+  readonly modeConfig = computed(() => GAME_MODE_CONFIGS[this.mode()]);
   currentLevel = signal(1);
   correctlyClickedTilesInSequence = signal(0);
   correctlyClickedTilesNotInSequence = signal(0);
@@ -90,7 +93,19 @@ export class GameService {
     this.selectedCount.set(0);
   }
 
+  setMode(mode: GameMode): void {
+    this.mode.set(mode);
+    this.#statsService.activeMode.set(mode);
+    this.#resetRunState();
+    this.gameState.set("idle");
+  }
+
   startGame(): void {
+    this.#resetRunState();
+    this.nextRound();
+  }
+
+  #resetRunState(): void {
     this.currentLevel.set(1);
     this.correctlyClickedTilesInSequence.set(0);
     this.correctlyClickedTilesNotInSequence.set(0);
@@ -104,8 +119,8 @@ export class GameService {
     this.lastRoundPoints.set(0);
     this.lastRoundMultiplier.set(1);
     this.lastRunWasNewBest.set(false);
+    this.#sequence = [];
     this.initializeGrid();
-    this.nextRound();
   }
 
   retryLastLevel(): void {
@@ -189,6 +204,10 @@ export class GameService {
     }
   }
 
+  #expectedSequence(): readonly number[] {
+    return this.mode() === "reverse" ? [...this.#sequence].reverse() : this.#sequence;
+  }
+
   handlePlayerTileClick(tileId: number): void {
     if (this.gameState() !== "input") return;
 
@@ -204,6 +223,20 @@ export class GameService {
     );
     this.#soundService.playStepTone(tapIndex, "input");
 
+    if (this.mode() === "strict") {
+      const expected = this.#expectedSequence();
+      if (tileId !== expected[tapIndex]) {
+        this.gameState.set("checking");
+        this.#finishGameOver();
+        return;
+      }
+      if (this.#playerInput.length === expected.length) {
+        this.gameState.set("checking");
+        this.#finishRoundCleared(expected.length, 0, true);
+      }
+      return;
+    }
+
     // Check if player has made enough selections
     if (this.#playerInput.length === this.#sequence.length) {
       this.#checkRound();
@@ -212,15 +245,26 @@ export class GameService {
 
   #checkRound(): void {
     this.gameState.set("checking");
+    const expected = this.#expectedSequence();
+
+    if (!this.modeConfig().orderMatters) {
+      const expectedSet = new Set(expected);
+      const correctCount = this.#playerInput.filter(id => expectedSet.has(id)).length;
+      if (correctCount === expected.length) {
+        this.#finishRoundCleared(0, correctCount, true);
+      } else {
+        this.#finishGameOver();
+      }
+      return;
+    }
 
     let inSequenceCount = 0;
     let notInSequenceCount = 0;
 
-    // Calculate scores based on player input compared to the sequence
     for (let i = 0; i < this.#playerInput.length; i++) {
       const tileId = this.#playerInput[i];
-      if (this.#sequence.includes(tileId)) {
-        if (this.#sequence[i] === tileId) {
+      if (expected.includes(tileId)) {
+        if (expected[i] === tileId) {
           inSequenceCount++;
         } else {
           notInSequenceCount++;
@@ -228,68 +272,79 @@ export class GameService {
       }
     }
 
-    const correctSelections = inSequenceCount + notInSequenceCount === this.#sequence.length;
-
-    if (correctSelections) {
-      const isPerfect = inSequenceCount === this.#sequence.length;
-      const nextStreak = isPerfect ? this.streak() + 1 : 0;
-      const multiplier = isPerfect ? streakMultiplier(nextStreak) : 1;
-      const basePoints = inSequenceCount * 2 + notInSequenceCount;
-      const roundPoints = Math.round(basePoints * multiplier);
-
-      this.streak.set(nextStreak);
-      if (nextStreak > this.bestRunStreak()) {
-        this.bestRunStreak.set(nextStreak);
-      }
-      this.maxClearedSpan.set(Math.max(this.maxClearedSpan(), this.#sequence.length));
-      this.lastRoundPoints.set(roundPoints);
-      this.lastRoundMultiplier.set(multiplier);
-
-      this.correctlyClickedTilesInSequence.update(s => s + inSequenceCount);
-      this.correctlyClickedTilesNotInSequence.update(s => s + notInSequenceCount);
-      this.score.update(s => s + roundPoints);
-      this.#soundService.playRoundCleared(nextStreak);
-      this.gameState.set("round-cleared");
+    if (inSequenceCount + notInSequenceCount === expected.length) {
+      this.#finishRoundCleared(inSequenceCount, notInSequenceCount, inSequenceCount === expected.length);
     } else {
-      this.streak.set(0);
-      this.lastRoundPoints.set(0);
-      this.lastRoundMultiplier.set(1);
+      this.#finishGameOver();
+    }
+  }
 
-      // Update tiles with final states and 1-based sequence order before setting the game to over
-      const sequence = this.#sequence;
-      const playerInput = this.#playerInput;
-      this.tiles.update(tiles =>
-        tiles.map(tile => {
-          const seqIndex = sequence.indexOf(tile.id);
-          const isInSequence = seqIndex !== -1;
-          const isClickedByPlayer = playerInput.includes(tile.id);
-          return {
-            ...tile,
-            isCorrectAndClicked: isInSequence && isClickedByPlayer,
-            isCorrectAndNotClicked: isInSequence && !isClickedByPlayer,
-            isIncorrectAndClicked: !isInSequence && isClickedByPlayer,
-            sequenceOrder: isInSequence ? seqIndex + 1 : undefined,
-          };
-        })
-      );
+  #finishRoundCleared(
+    inSequenceCount: number,
+    notInSequenceCount: number,
+    isPerfect: boolean
+  ): void {
+    const nextStreak = isPerfect ? this.streak() + 1 : 0;
+    const multiplier = isPerfect ? streakMultiplier(nextStreak) : 1;
+    const basePoints = inSequenceCount * 2 + notInSequenceCount;
+    const roundPoints = Math.round(basePoints * multiplier);
 
-      if (!this.isUnrankedRetry()) {
-        const { isNewBestScore } = this.#statsService.recordRun({
+    this.streak.set(nextStreak);
+    if (nextStreak > this.bestRunStreak()) {
+      this.bestRunStreak.set(nextStreak);
+    }
+    this.maxClearedSpan.set(Math.max(this.maxClearedSpan(), this.#sequence.length));
+    this.lastRoundPoints.set(roundPoints);
+    this.lastRoundMultiplier.set(multiplier);
+
+    this.correctlyClickedTilesInSequence.update(s => s + inSequenceCount);
+    this.correctlyClickedTilesNotInSequence.update(s => s + notInSequenceCount);
+    this.score.update(s => s + roundPoints);
+    this.#soundService.playRoundCleared(nextStreak);
+    this.gameState.set("round-cleared");
+  }
+
+  #finishGameOver(): void {
+    this.streak.set(0);
+    this.lastRoundPoints.set(0);
+    this.lastRoundMultiplier.set(1);
+
+    const expected = this.#expectedSequence();
+    const playerInput = this.#playerInput;
+    this.tiles.update(tiles =>
+      tiles.map(tile => {
+        const seqIndex = expected.indexOf(tile.id);
+        const isInSequence = seqIndex !== -1;
+        const isClickedByPlayer = playerInput.includes(tile.id);
+        return {
+          ...tile,
+          isCorrectAndClicked: isInSequence && isClickedByPlayer,
+          isCorrectAndNotClicked: isInSequence && !isClickedByPlayer,
+          isIncorrectAndClicked: !isInSequence && isClickedByPlayer,
+          sequenceOrder: isInSequence ? seqIndex + 1 : undefined,
+        };
+      })
+    );
+
+    if (!this.isUnrankedRetry()) {
+      const { isNewBestScore } = this.#statsService.recordRun(
+        {
           score: this.score(),
           level: this.currentLevel(),
           maxSpan: this.maxClearedSpan(),
           bestStreak: this.bestRunStreak(),
           inSequenceTiles: this.correctlyClickedTilesInSequence(),
           outOfSequenceTiles: this.correctlyClickedTilesNotInSequence(),
-        });
-        this.lastRunWasNewBest.set(isNewBestScore);
-      } else {
-        this.lastRunWasNewBest.set(false);
-      }
-
-      this.#soundService.playGameOver();
-      this.gameState.set("over");
+        },
+        this.mode()
+      );
+      this.lastRunWasNewBest.set(isNewBestScore);
+    } else {
+      this.lastRunWasNewBest.set(false);
     }
+
+    this.#soundService.playGameOver();
+    this.gameState.set("over");
   }
 
   // Method to get the current sequence (e.g., for the grid component to light up tiles)
