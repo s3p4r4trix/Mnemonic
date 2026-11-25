@@ -62,6 +62,13 @@
   color: var(--md-sys-color-secondary);
 }
 
+.game-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+}
+
 .badges-row {
   display: flex;
   flex-wrap: wrap;

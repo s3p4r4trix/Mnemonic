@@ -35,9 +35,16 @@
   }
 
   @if (gameService.gameState() === 'idle' || gameService.gameState() === 'over') {
-    <button matButton="elevated" (click)="startGame()">
-      Start Game
-    </button>
+    <div class="game-actions">
+      <button matButton="elevated" (click)="startGame()">
+        Start Game
+      </button>
+      @if (gameService.gameState() === 'over') {
+        <button matButton="tonal" (click)="retryLevel()">
+          Retry Level
+        </button>
+      }
+    </div>
   }
 
   @if (gameService.gameState() !== 'idle') {
