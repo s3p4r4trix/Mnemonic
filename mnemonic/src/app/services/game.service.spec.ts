@@ -1,6 +1,6 @@
 import { provideZonelessChangeDetection } from "@angular/core";
 import { TestBed } from "@angular/core/testing";
-import { GameService } from "./game.service"; // Path to game.service.ts (which is game.service.ts)
+import { GameService } from "./game.service";
 
 describe("GameService", () => {
   let service: GameService;
@@ -32,6 +32,31 @@ describe("GameService", () => {
     it("should be in idle state initially", () => {
       expect(service.gameState()).toBe("idle");
     });
+
+    it("should have selectedCount of 0 initially", () => {
+      expect(service.selectedCount()).toBe(0);
+    });
+  });
+
+  describe("Responsive Viewport Sizing", () => {
+    it("should recalculate tileSize when viewport dimensions change", () => {
+      service.gridSize.set(5);
+      service.updateViewport(1200, 900);
+      const desktopSize = service.tileSize();
+
+      service.updateViewport(360, 640);
+      const mobileSize = service.tileSize();
+
+      expect(desktopSize).toBe(80);
+      expect(mobileSize).toBeLessThan(desktopSize);
+      expect(mobileSize).toBeGreaterThanOrEqual(40);
+    });
+
+    it("should clamp tileSize against viewport height on short landscape screens", () => {
+      service.gridSize.set(5);
+      service.updateViewport(1200, 520);
+      expect(service.tileSize()).toBe(40);
+    });
   });
 
   describe("startGame", () => {
@@ -40,12 +65,14 @@ describe("GameService", () => {
       expect(service.gameState()).toBe("sequence");
     });
 
-    it("should reset score and level", () => {
+    it("should reset score, level, and selectedCount", () => {
       service.score.set(100);
       service.currentLevel.set(5);
+      service.selectedCount.set(2);
       service.startGame();
       expect(service.score()).toBe(0);
       expect(service.currentLevel()).toBe(1);
+      expect(service.selectedCount()).toBe(0);
     });
 
     it("should generate a sequence of 3 tiles for the start of the game", () => {
@@ -54,32 +81,54 @@ describe("GameService", () => {
     });
   });
 
+  describe("Playback Helpers", () => {
+    it("should light and clear tiles via helper methods and transition to input", () => {
+      service.startGame();
+      const [first] = service.getSequence();
+
+      service.setLitTiles([first]);
+      expect(service.tiles().find(t => t.id === first)!.lit).toBe(true);
+
+      service.clearLitTiles();
+      expect(service.tiles().every(t => !t.lit)).toBe(true);
+
+      service.completeSequencePlayback();
+      expect(service.gameState()).toBe("input");
+    });
+  });
+
   describe("Player Interaction and Round Win", () => {
-    it("should register player clicks when in input state", () => {
-      service.startGame(); // Puts state to sequence
+    it("should register player clicks and update selectedCount when in input state", () => {
+      service.startGame();
       const firstTileId = service.getSequence()[0];
-      service.gameState.set("input"); // Force input state
+      service.gameState.set("input");
 
       service.handlePlayerTileClick(firstTileId);
       expect(service.tiles().find(t => t.id === firstTileId)!.selectedByPlayer).toBe(true);
+      expect(service.selectedCount()).toBe(1);
     });
 
-    it("should correctly process a winning round and advance state", () => {
+    it("should enter round-cleared state on win and advance on advanceToNextRound()", () => {
       service.startGame(); // lvl 1, 3 tiles, score 0
       const currentSequence = service.getSequence();
-      service.gameState.set("input"); // Allow input
+      service.gameState.set("input");
 
       currentSequence.forEach((tileId) => {
         service.handlePlayerTileClick(tileId);
       });
 
-      // Check round completion
-      expect(service.gameState()).toBe("sequence"); // Ready for next round
-      expect(service.currentLevel()).toBe(2);
+      // Immediately after win: score awarded, waiting in round-cleared beat
+      expect(service.gameState()).toBe("round-cleared");
       expect(service.score()).toBe(6); // 6 points for 3 in-order tiles (2 pts each)
       expect(service.correctlyClickedTilesInSequence()).toBe(3);
       expect(service.correctlyClickedTilesNotInSequence()).toBe(0);
-      expect(service.numTilesToLight()).toBe(4); // Next round has 4 tiles
+
+      // Advance after round-cleared transition
+      service.advanceToNextRound();
+      expect(service.gameState()).toBe("sequence");
+      expect(service.currentLevel()).toBe(2);
+      expect(service.numTilesToLight()).toBe(4);
+      expect(service.selectedCount()).toBe(0);
     });
 
     it("should award 1 point per out-of-order tile and 2 points per in-order tile on a winning round", () => {
@@ -92,46 +141,60 @@ describe("GameService", () => {
         service.handlePlayerTileClick(tileId);
       });
 
-      expect(service.gameState()).toBe("sequence");
-      expect(service.currentLevel()).toBe(2);
+      expect(service.gameState()).toBe("round-cleared");
       expect(service.correctlyClickedTilesInSequence()).toBe(0);
       expect(service.correctlyClickedTilesNotInSequence()).toBe(3);
       expect(service.score()).toBe(3);
+
+      service.advanceToNextRound();
+      expect(service.gameState()).toBe("sequence");
+      expect(service.currentLevel()).toBe(2);
     });
   });
 
   describe("Grid Growth", () => {
     it("should grow grid from 3x3 to 4x4 when numTilesToLight becomes 5", () => {
       // Level 1: 3 tiles. Complete round. Next: 4 tiles. Grid 3x3.
-      service.startGame(); // seq has 3 tiles
+      service.startGame();
       service.gameState.set("input");
       service.getSequence().forEach(id => service.handlePlayerTileClick(id));
-      // Now: level 2, numTilesToLight is 4, score 6, grid 3x3
+      service.advanceToNextRound();
 
       // Level 2: 4 tiles. Complete round. Next: 5 tiles. Grid should grow.
       service.gameState.set("input");
       service.getSequence().forEach(id => service.handlePlayerTileClick(id));
-      // Now: level 3, numTilesToLight is 5, score 6+8=14. Grid should be 4x4.
+      service.advanceToNextRound();
 
       expect(service.gridSize()).toBe(4);
       expect(service.tiles().length).toBe(16);
-      expect(service.numTilesToLight()).toBe(5); // For the new round on 4x4 grid
+      expect(service.numTilesToLight()).toBe(5);
     });
   });
 
   describe("Game Over", () => {
-    it("should set gameState to over if player clicks a wrong tile", () => {
+    it("should set gameState to over and populate sequenceOrder on target tiles", () => {
       service.startGame();
-      const currentSequence = service.getSequence(); // e.g. [a, b, c]
+      const currentSequence = service.getSequence(); // [a, b, c]
       service.gameState.set("input");
 
       const wrongTile = service.tiles().find(t => !currentSequence.includes(t.id))!;
 
-      service.handlePlayerTileClick(currentSequence[0]); // Correct
-      service.handlePlayerTileClick(currentSequence[1]); // Correct
-      service.handlePlayerTileClick(wrongTile.id); // Incorrect (3rd click triggers #checkRound)
+      service.handlePlayerTileClick(currentSequence[0]); // Hit (order 1)
+      service.handlePlayerTileClick(currentSequence[1]); // Hit (order 2)
+      service.handlePlayerTileClick(wrongTile.id); // Wrong click; currentSequence[2] missed (order 3)
 
       expect(service.gameState()).toBe("over");
+
+      const tile0 = service.tiles().find(t => t.id === currentSequence[0])!;
+      const tile2 = service.tiles().find(t => t.id === currentSequence[2])!;
+      const wrong = service.tiles().find(t => t.id === wrongTile.id)!;
+
+      expect(tile0.isCorrectAndClicked).toBe(true);
+      expect(tile0.sequenceOrder).toBe(1);
+      expect(tile2.isCorrectAndNotClicked).toBe(true);
+      expect(tile2.sequenceOrder).toBe(3);
+      expect(wrong.isIncorrectAndClicked).toBe(true);
+      expect(wrong.sequenceOrder).toBeUndefined();
     });
 
     it("should not award points or inflate tile counters on a failed round or across retryLastLevel()", () => {
@@ -167,6 +230,5 @@ describe("GameService", () => {
       expect(service.correctlyClickedTilesNotInSequence()).toBe(0);
     });
   });
-
 });
 

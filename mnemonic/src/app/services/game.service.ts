@@ -1,25 +1,39 @@
-import {computed, Injectable, signal} from "@angular/core";
+import {computed, DestroyRef, inject, Injectable, signal} from "@angular/core";
 import {Tile} from '../models/tile.model';
+
+export type GameState = "idle" | "sequence" | "input" | "checking" | "round-cleared" | "over";
 
 @Injectable({
   providedIn: "root",
 })
 export class GameService {
+  readonly #destroyRef = inject(DestroyRef);
+
   // Game State
   currentLevel = signal(1);
   correctlyClickedTilesInSequence = signal(0);
   correctlyClickedTilesNotInSequence = signal(0);
   score = signal(0);
-  gameState = signal<"idle" | "sequence" | "input" | "checking" | "over">("idle");
+  gameState = signal<GameState>("idle");
+  selectedCount = signal(0);
 
-  // Grid Configuration
+  // Viewport & Grid Configuration
+  readonly #viewport = signal({
+    width: typeof window !== "undefined" ? window.innerWidth : 1024,
+    height: typeof window !== "undefined" ? window.innerHeight : 768,
+  });
   gridSize = signal(3); // Initial grid size (3x3)
   tileSize = computed(() => {
-    const screenWidth = window.innerWidth - 50; // Subtract padding
-    let tileSize = Math.floor(screenWidth / this.gridSize()); // Calculate tile size
+    const { width, height } = this.#viewport();
+    const size = this.gridSize();
+    const availableWidth = Math.max(0, width - 64);
+    const availableHeight = Math.max(0, height - 300);
+    const maxBoardSize = Math.min(availableWidth, availableHeight);
+    const gapBudget = Math.max(0, size - 1) * 6;
+    const calculatedSize = Math.floor((maxBoardSize - gapBudget) / size);
 
     // Enforce minimum (40) and maximum (80) tile size
-    return Math.max(40, Math.min(tileSize, 80));
+    return Math.max(40, Math.min(calculatedSize, 80));
   });
   tiles = signal<Tile[]>([]);
   numTilesToLight = signal(3); // Initial number of tiles to light
@@ -30,6 +44,20 @@ export class GameService {
 
   constructor() {
     this.initializeGrid();
+
+    if (typeof window !== "undefined") {
+      const onResize = () => {
+        this.updateViewport(window.innerWidth, window.innerHeight);
+      };
+      window.addEventListener("resize", onResize);
+      this.#destroyRef.onDestroy(() => {
+        window.removeEventListener("resize", onResize);
+      });
+    }
+  }
+
+  updateViewport(width: number, height: number): void {
+    this.#viewport.set({ width, height });
   }
 
   initializeGrid(): void {
@@ -40,6 +68,7 @@ export class GameService {
     }
     this.tiles.set(newTiles);
     this.#playerInput = [];
+    this.selectedCount.set(0);
   }
 
   startGame(): void {
@@ -51,11 +80,11 @@ export class GameService {
     this.score.set(0);
     this.initializeGrid();
     this.nextRound();
-    this.gameState.set("sequence");
   }
 
   retryLastLevel(): void {
     this.#playerInput = []; // Clear previous input
+    this.selectedCount.set(0);
     // Ensure tiles are reset visually (no selections, no final state colors)
     // but maintain the current grid size and level parameters.
     this.tiles.update(tiles => tiles.map(t => this.#createDefaultTile(t.id)));
@@ -67,10 +96,42 @@ export class GameService {
 
   nextRound(): void {
     this.#playerInput = [];
+    this.selectedCount.set(0);
     this.tiles.update(tiles => tiles.map(t => this.#createDefaultTile(t.id)));
     this.#generateSequence();
     // Logic to display a sequence will be handled by components observing state
     this.gameState.set("sequence");
+  }
+
+  advanceToNextRound(): void {
+    if (this.gameState() !== "round-cleared") return;
+
+    this.currentLevel.update(l => l + 1);
+    this.numTilesToLight.update(n => n + 1);
+    const currentGridCapacity = this.gridSize() * this.gridSize();
+    if (this.numTilesToLight() > currentGridCapacity / 2) {
+      this.gridSize.update(g => g + 1);
+    }
+    this.initializeGrid();
+    this.nextRound();
+  }
+
+  setLitTiles(tileIds: ReadonlyArray<number>): void {
+    const litSet = new Set(tileIds);
+    this.tiles.update(tiles =>
+      tiles.map(t => ({ ...t, lit: litSet.has(t.id) }))
+    );
+  }
+
+  clearLitTiles(): void {
+    this.tiles.update(tiles => tiles.map(t => (t.lit ? { ...t, lit: false } : t)));
+  }
+
+  completeSequencePlayback(): void {
+    if (this.gameState() === "sequence") {
+      this.clearLitTiles();
+      this.gameState.set("input");
+    }
   }
 
   #createDefaultTile(id: number): Tile {
@@ -81,6 +142,7 @@ export class GameService {
       isCorrectAndClicked: false,
       isCorrectAndNotClicked: false,
       isIncorrectAndClicked: false,
+      sequenceOrder: undefined,
     };
   }
 
@@ -94,7 +156,6 @@ export class GameService {
       const randomIndex = Math.floor(Math.random() * availableTiles.length);
       this.#sequence.push(availableTiles.splice(randomIndex, 1)[0]);
     }
-    console.log("Generated Sequence:", this.#sequence); // For debugging
   }
 
   handlePlayerTileClick(tileId: number): void {
@@ -105,6 +166,7 @@ export class GameService {
       return;
     }
     this.#playerInput.push(tileId);
+    this.selectedCount.set(this.#playerInput.length);
     this.tiles.update(tiles =>
       tiles.map(t => (t.id === tileId ? { ...t, selectedByPlayer: true } : t))
     );
@@ -124,14 +186,13 @@ export class GameService {
     // Calculate scores based on player input compared to the sequence
     for (let i = 0; i < this.#playerInput.length; i++) {
       const tileId = this.#playerInput[i];
-      if (this.#sequence.includes(tileId)) { // Check if the clicked tile is part of the correct sequence
-        if (this.#sequence[i] === tileId) { // Check if the clicked tile is in the correct order
+      if (this.#sequence.includes(tileId)) {
+        if (this.#sequence[i] === tileId) {
           inSequenceCount++;
         } else {
           notInSequenceCount++;
         }
       }
-      // Incorrect clicks (not in sequence at all) do not add to score as per new logic.
     }
 
     const correctSelections = inSequenceCount + notInSequenceCount === this.#sequence.length;
@@ -140,38 +201,27 @@ export class GameService {
       this.correctlyClickedTilesInSequence.update(s => s + inSequenceCount);
       this.correctlyClickedTilesNotInSequence.update(s => s + notInSequenceCount);
       this.score.update(s => s + (inSequenceCount * 2) + notInSequenceCount);
-      this.currentLevel.update(l => l + 1);
-      // Progression logic
-      this.numTilesToLight.update(n => n + 1);
-      // Grid growth logic: if numTilesToLight > (gridSize*gridSize)/2
-      const currentGridCapacity = this.gridSize() * this.gridSize();
-      if (this.numTilesToLight() > currentGridCapacity / 2) {
-        this.gridSize.update(g => g + 1);
-      }
-      this.initializeGrid(); // Re-initialize grid for new size if it changed
-      // Reset scores for the new round, but they are computed, so this happens implicitly
-      // by resetting playerInput and generating a new sequence.
-      this.nextRound(); // Start next round
+      this.gameState.set("round-cleared");
     } else {
-      // Update tiles with final states before setting the game to over
+      // Update tiles with final states and 1-based sequence order before setting the game to over
       const sequence = this.#sequence;
       const playerInput = this.#playerInput;
       this.tiles.update(tiles =>
         tiles.map(tile => {
-          const isInSequence = sequence.includes(tile.id);
+          const seqIndex = sequence.indexOf(tile.id);
+          const isInSequence = seqIndex !== -1;
           const isClickedByPlayer = playerInput.includes(tile.id);
           return {
             ...tile,
             isCorrectAndClicked: isInSequence && isClickedByPlayer,
             isCorrectAndNotClicked: isInSequence && !isClickedByPlayer,
             isIncorrectAndClicked: !isInSequence && isClickedByPlayer,
+            sequenceOrder: isInSequence ? seqIndex + 1 : undefined,
           };
         })
       );
 
-      // Player made a mistake, game over as per current simplified logic.
       this.gameState.set("over");
-      console.log("Round Failed, Game Over");
     }
   }
 

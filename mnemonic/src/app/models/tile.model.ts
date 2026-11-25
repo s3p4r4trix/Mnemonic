@@ -5,4 +5,5 @@ export interface Tile {
   isCorrectAndClicked?: boolean;
   isCorrectAndNotClicked?: boolean;
   isIncorrectAndClicked?: boolean;
+  sequenceOrder?: number;
 }

@@ -1,13 +1,14 @@
-import {Component, inject, OnInit, signal, ChangeDetectionStrategy} from '@angular/core';
-import { DOCUMENT } from '@angular/common';
+import {ChangeDetectionStrategy, Component, inject, OnInit, signal} from '@angular/core';
+import {DOCUMENT} from '@angular/common';
+import {MatIconButton} from '@angular/material/button';
+import {MatIcon} from '@angular/material/icon';
 import {GameComponent} from './components/game/game';
-import {MatButton} from '@angular/material/button';
 
 @Component({
   selector: 'app-root',
-  imports: [GameComponent, MatButton],
+  imports: [GameComponent, MatIconButton, MatIcon],
   templateUrl: './app.html',
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrl: './app.scss'
 })
 export class App implements OnInit {
@@ -15,25 +16,17 @@ export class App implements OnInit {
   private document: Document = inject(DOCUMENT);
   currentTheme = signal<'light' | 'dark'>('light');
 
-
   ngOnInit(): void {
-    const storedTheme = localStorage.getItem('theme') as 'light' | 'dark' | null;
-    if (storedTheme) {
+    const storedTheme = localStorage.getItem('theme');
+    if (storedTheme === 'light' || storedTheme === 'dark') {
       this.currentTheme.set(storedTheme);
+    } else if (
+      typeof window !== 'undefined' &&
+      window.matchMedia?.('(prefers-color-scheme: dark)').matches
+    ) {
+      this.currentTheme.set('dark');
     }
     this.#updateBodyClass();
-    this.preventDoubleTapZoom();
-  }
-
-  private preventDoubleTapZoom(): void {
-    let lastTouchEnd = 0;
-    this.document.addEventListener('touchend', (event) => {
-      const now = (new Date()).getTime();
-      if (now - lastTouchEnd <= 300) { // 300 ms is a common threshold for double tap
-        event.preventDefault();
-      }
-      lastTouchEnd = now;
-    }, { passive: false }); // passive: false is needed to call preventDefault
   }
 
   toggleTheme(): void {
@@ -43,16 +36,15 @@ export class App implements OnInit {
   }
 
   #updateBodyClass(): void {
-    this.document.body.classList.remove('dark', 'light'); // Remove both for clean slate
-    if (this.currentTheme() === 'dark') {
-      this.document.body.classList.add('dark');
-    }
-    if (this.currentTheme() === 'light') {
-      this.document.body.classList.add('light');
-    }
+    this.document.body.classList.remove('dark', 'light');
+    this.document.body.classList.add(this.currentTheme());
   }
 
-  get buttonText() {
-    return this.currentTheme() === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode';
+  get themeAriaLabel(): string {
+    return this.currentTheme() === 'light' ? 'Switch to dark mode' : 'Switch to light mode';
+  }
+
+  get themeIcon(): string {
+    return this.currentTheme() === 'light' ? 'dark_mode' : 'light_mode';
   }
 }

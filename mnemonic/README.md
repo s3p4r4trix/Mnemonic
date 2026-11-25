@@ -14,15 +14,15 @@ After the sequence finishes, click the tiles that lit up:
 - **Starting state.** Level 1 starts on a 3x3 grid (`gridSize = 3`) with 3 tiles in the sequence (`numTilesToLight = 3`).
 - **Scoring.** Clicking a sequence tile in its exact index order awards 2 points (`correctlyClickedTilesInSequence`). Clicking a sequence tile at a different index awards 1 point (`correctlyClickedTilesNotInSequence`). Points only count when you select all tiles in the sequence without picking a wrong tile.
 - **Level progression.** Completing a round advances `currentLevel` by 1 and adds 1 tile to `numTilesToLight`. When `numTilesToLight` exceeds half of the total tiles on the board (`(gridSize * gridSize) / 2`), `gridSize` increases by 1.
-- **Game over.** Selecting any tile outside the sequence ends the round when your selection count reaches the sequence length. The board highlights your hits and misses, and `GameOverDialogComponent` lets you start a new game at level 1 or retry the failed level with a new random sequence.
+- **Game over.** Selecting any tile outside the sequence ends the round when your selection count reaches the sequence length. The board highlights your hits, misses, and target sequence order (`1, 2, 3…`), and `GameOverDialogComponent` lets you start a new game at level 1 or retry the failed level with a new random sequence.
 
 ## Project layout
 
 All commands below run from the `mnemonic/` directory:
 
-- `src/app/services/game.service.ts` holds the signal state (`tiles`, `score`, `currentLevel`, `gridSize`, `numTilesToLight`, `gameState`) and scoring logic.
-- `src/app/components/game/` drives the sequence playback loop, theme toggle, and game-over dialog.
-- `src/app/components/grid/` and `src/app/components/tile/` render the dynamic CSS grid and tile state classes.
+- `src/app/services/game.service.ts` holds the signal state (`tiles`, `score`, `currentLevel`, `gridSize`, `numTilesToLight`, `selectedCount`, `gameState`) and scoring logic.
+- `src/app/components/game/` drives the cancellable sequence playback loop, round-cleared transition, and game-over dialog.
+- `src/app/components/grid/` and `src/app/components/tile/` render the dynamic CSS grid, 2D arrow-key navigation, and tile state overlays.
 - `src/app/components/game-over-dialog/` renders round statistics and retry actions.
 
 ## Development commands
@@ -50,3 +50,7 @@ Build the static production bundle (writes to `../docs` with `--base-href=./` as
 ```bash
 npm run build
 ```
+
+## CI & deployment
+
+`.github/workflows/ci-deploy.yml` runs headless unit tests and verifies the production build on every push and pull request, and deploys the built bundle to GitHub Pages automatically on pushes to `main`.

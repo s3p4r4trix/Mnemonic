@@ -1,4 +1,4 @@
-import {Component, effect, inject, ChangeDetectionStrategy} from "@angular/core";
+import {ChangeDetectionStrategy, Component, DestroyRef, effect, inject} from "@angular/core";
 import {GameService} from "../../services/game.service";
 import {GridComponent} from "../grid/grid";
 
@@ -6,41 +6,49 @@ import {MatDialog, MatDialogModule} from "@angular/material/dialog";
 import {MatButtonModule} from "@angular/material/button";
 import {GameOverDialogComponent} from "../game-over-dialog/game-over-dialog";
 
+const TILE_LIT_MS = 700;
+const TILE_GAP_MS = 300;
+const ALL_LIT_MS = 1000;
+const ROUND_CLEARED_MS = 800;
+
 @Component({
   selector: "app-game",
   imports: [GridComponent, MatDialogModule, MatButtonModule],
   templateUrl: './game.html',
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrls: ['./game.scss']
 })
 export class GameComponent {
   gameService = inject(GameService);
   dialog = inject(MatDialog);
+  readonly #destroyRef = inject(DestroyRef);
+
+  #playbackToken = 0;
 
   constructor() {
+    this.#destroyRef.onDestroy(() => {
+      this.#playbackToken++;
+    });
+
     effect(() => {
       const gameState = this.gameService.gameState();
+      // Cancel any in-flight playback or transition timers whenever state changes
+      const token = ++this.#playbackToken;
 
-      // Manage sequence display
       if (gameState === "sequence") {
-        this.displaySequence();
-      }
-
-      // Game over dialog
-      if (gameState === 'over') {
+        void this.displaySequence(token);
+      } else if (gameState === "round-cleared") {
+        void this.handleRoundCleared(token);
+      } else if (gameState === "over") {
         const dialogRef = this.dialog.open(GameOverDialogComponent, {
           disableClose: true // Prevent closing by clicking outside or Escape key
         });
 
         dialogRef.afterClosed().subscribe(result => {
-          if (result === 'play_again') { // `true` is passed from "Play Again" button
+          if (result === 'play_again') {
             this.gameService.startGame();
-          } else if (result === 'retry') { // 'retry' is passed from "Retry Level" button
+          } else if (result === 'retry') {
             this.gameService.retryLastLevel();
-          } else {
-            // If 'Close' was clicked (result is undefined) or any other unexpected result,
-            // do nothing here. The game remains in the 'over' state, showing the final grid.
-            // The user can then use the "Start Game" button on the main screen if they wish to play again.
           }
         });
       }
@@ -51,32 +59,34 @@ export class GameComponent {
     this.gameService.startGame();
   }
 
-  async displaySequence(): Promise<void> {
+  async displaySequence(token = ++this.#playbackToken): Promise<void> {
     const sequence = this.gameService.getSequence();
     if (!sequence || sequence.length === 0) return;
 
     // Light up tiles one by one
     for (const tileId of sequence) {
-      this.gameService.tiles.update(tiles =>
-        tiles.map(t => (t.id === tileId ? { ...t, lit: true } : t))
-      );
-      await this.#delay(700); // Time tile is lit during a sequence
-      this.gameService.tiles.update(tiles =>
-        tiles.map(t => (t.id === tileId ? { ...t, lit: false } : t))
-      );
-      await this.#delay(300); // Time between tiles
+      if (token !== this.#playbackToken) return;
+      this.gameService.setLitTiles([tileId]);
+      await this.#delay(TILE_LIT_MS);
+
+      if (token !== this.#playbackToken) return;
+      this.gameService.clearLitTiles();
+      await this.#delay(TILE_GAP_MS);
     }
 
-    // All tiles in sequence light up together for 1 second
-    this.gameService.tiles.update(tiles =>
-      tiles.map(t => (sequence.includes(t.id) ? { ...t, lit: true } : t))
-    );
-    await this.#delay(1000); // Hold all lit tiles
+    if (token !== this.#playbackToken) return;
+    // All tiles in sequence light up together
+    this.gameService.setLitTiles(sequence);
+    await this.#delay(ALL_LIT_MS);
 
-    // Then turn off all tiles
-    this.gameService.tiles.update(tiles => tiles.map(t => ({ ...t, lit: false })));
+    if (token !== this.#playbackToken) return;
+    this.gameService.completeSequencePlayback();
+  }
 
-    this.gameService.gameState.set("input");
+  async handleRoundCleared(token: number): Promise<void> {
+    await this.#delay(ROUND_CLEARED_MS);
+    if (token !== this.#playbackToken) return;
+    this.gameService.advanceToNextRound();
   }
 
   #delay(ms: number): Promise<void> {

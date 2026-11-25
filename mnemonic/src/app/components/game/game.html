@@ -1,8 +1,17 @@
 <div class="game-area">
-  <h1 class="game-title">Mnemonic Trainer</h1>
-  <div class="stats">
-    <p>Score: {{ gameService.score() }}</p>
-    <p>Tiles to remember: {{ gameService.numTilesToLight() }}</p>
+  <div class="stats" aria-label="Game statistics">
+    <div class="stat-item">
+      <span class="stat-label">Level</span>
+      <span class="stat-value">{{ gameService.currentLevel() }}</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-label">Score</span>
+      <span class="stat-value">{{ gameService.score() }}</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-label">Tiles</span>
+      <span class="stat-value">{{ gameService.selectedCount() }} / {{ gameService.numTilesToLight() }}</span>
+    </div>
   </div>
 
   @if (gameService.gameState() === 'idle' || gameService.gameState() === 'over') {
@@ -15,19 +24,15 @@
     <app-grid></app-grid>
   }
 
-  @if (gameService.gameState() === 'sequence') {
-    <div class="message">
-      Memorize the sequence...
-    </div>
-  }
-  @if (gameService.gameState() === 'input') {
-    <div class="message">
-      <p>Your turn! Double score as long as in sequence!</p>
-    </div>
-  }
-  @if (gameService.gameState() === 'checking') {
-    <div class="message">
-      Checking...
-    </div>
-  }
+  <div class="message" role="status" aria-live="polite">
+    @if (gameService.gameState() === 'sequence') {
+      <span>Memorize the sequence...</span>
+    } @else if (gameService.gameState() === 'input') {
+      <span>Your turn! Double score when in sequence!</span>
+    } @else if (gameService.gameState() === 'checking') {
+      <span>Checking...</span>
+    } @else if (gameService.gameState() === 'round-cleared') {
+      <span class="round-cleared-banner">Round Cleared!</span>
+    }
+  </div>
 </div>

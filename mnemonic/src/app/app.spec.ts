@@ -22,4 +22,21 @@ describe('App', () => {
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.querySelector('h1')?.textContent).toContain('Mnemonic Trainer');
   });
+
+  it('should toggle theme between light and dark modes', () => {
+    localStorage.setItem('theme', 'light');
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+    const app = fixture.componentInstance;
+
+    expect(app.currentTheme()).toBe('light');
+    expect(document.body.classList.contains('light')).toBe(true);
+
+    app.toggleTheme();
+    fixture.detectChanges();
+
+    expect(app.currentTheme()).toBe('dark');
+    expect(document.body.classList.contains('dark')).toBe(true);
+    expect(localStorage.getItem('theme')).toBe('dark');
+  });
 });
