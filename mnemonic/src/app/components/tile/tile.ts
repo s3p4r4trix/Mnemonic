@@ -12,7 +12,6 @@ import {Tile} from '../../models/tile.model';
       [style.height]="this.tileSize() + 'px'"
       [class.lit]="tile().lit && gameService.gameState() !== 'over'"
       [class.selected-by-player]="tile().selectedByPlayer && gameService.gameState() !== 'over'"
-      [class.correct-selection]="tile().selectedByPlayer && tile().lit && gameService.gameState() === 'checking'"
       [class.correct-clicked]="gameService.gameState() === 'over' && tile().isCorrectAndClicked"
       [class.correct-not-clicked]="gameService.gameState() === 'over' && tile().isCorrectAndNotClicked"
       [class.incorrect-clicked]="gameService.gameState() === 'over' && tile().isIncorrectAndClicked"
