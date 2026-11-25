@@ -22,16 +22,13 @@ body.dark {
 // General body styles
 body {
   margin: 0;
-  font-family: sans-serif;
+  font-family: Roboto, "Helvetica Neue", sans-serif;
   background-color: var(--md-sys-color-surface-variant);
   color: var(--md-sys-color-on-surface-variant);
   transition: background-color 0.3s ease, color 0.3s ease;
+  touch-action: manipulation;
 }
 
-/* Basic styling for the main container to ensure content is not hidden by the fixed button */
-.main-container {
-  padding-top: 50px;
+html, body {
+  height: 100%;
 }
-
-html, body { height: 100%; }
-body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }

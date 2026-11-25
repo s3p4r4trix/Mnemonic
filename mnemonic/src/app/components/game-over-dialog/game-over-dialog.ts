@@ -8,7 +8,7 @@ import {GameService} from '../../services/game.service';
   selector: 'app-game-over-dialog',
   imports: [MatDialogModule, MatButtonModule],
   templateUrl: './game-over-dialog.html',
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrls: ['./game-over-dialog.scss']
 })
 export class GameOverDialogComponent {

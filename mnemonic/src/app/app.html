@@ -1,4 +1,19 @@
 <div class="main-container">
-  <button matButton="elevated" id="theme-toggle-button" (click)="toggleTheme()">{{ buttonText }}</button>
-  <app-game></app-game>
+  <header class="app-header">
+    <h1 class="app-title">Mnemonic Trainer</h1>
+    <div class="header-actions">
+      <button
+        mat-icon-button
+        id="theme-toggle-button"
+        type="button"
+        [attr.aria-label]="themeAriaLabel"
+        [attr.title]="themeAriaLabel"
+        (click)="toggleTheme()">
+        <mat-icon aria-hidden="true">{{ themeIcon }}</mat-icon>
+      </button>
+    </div>
+  </header>
+  <main>
+    <app-game></app-game>
+  </main>
 </div>
