@@ -1,14 +1,8 @@
 # Mnemonic Trainer Roadmap
 
-Planned improvements ordered by priority. Completed Phase 1 work (responsive grid, compact header, cancellable playback, HUD progress, round-cleared transition, Game Over review overlays, keyboard navigation, `OnPush`, live-browser E2E checks, and GitHub Actions CI/Pages) has been removed.
+Planned improvements ordered by priority. Completed Phase 1 work (responsive grid, compact header, cancellable playback, HUD progress, round-cleared transition, Game Over review overlays, keyboard navigation, `OnPush`, live-browser E2E checks, and GitHub Actions CI/Pages) and Phase 2 work (Web Audio pentatonic tones and mute toggle, `localStorage` stats and stats dialog, and consecutive in-sequence streak multiplier) have been removed.
 
-## Phase 2: Sensory Polish and Player Retention (Next)
-
-- **Web Audio API soundscape.** Synthesize ascending pentatonic tones per sequence step to reward in-order recall, plus distinct round-clear and mistake chimes. Add a persistent mute toggle in the top header bar.
-- **Local high scores and memory span stats.** Persist personal best score, highest level, max working-memory span, order versus spatial accuracy, and recent run history in `localStorage`. Show personal best in the HUD and expose a compact stats dialog.
-- **Streak and combo feedback.** Track consecutive 100% in-sequence rounds with a visible streak badge and optional bonus multiplier.
-
-## Phase 3: Game Modes and Replayability
+## Phase 3: Game Modes and Replayability (Next)
 
 - **Mode selector.**
   - Classic (current rules).
