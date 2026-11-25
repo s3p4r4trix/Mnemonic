@@ -1,3 +1,4 @@
+import { provideZonelessChangeDetection } from "@angular/core";
 import { TestBed } from "@angular/core/testing";
 import { GameService } from "./game.service"; // Path to game.service.ts (which is game.service.ts)
 
@@ -6,7 +7,7 @@ describe("GameService", () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [GameService],
+      providers: [provideZonelessChangeDetection(), GameService],
     });
     service = TestBed.inject(GameService);
   });
@@ -56,11 +57,11 @@ describe("GameService", () => {
   describe("Player Interaction and Round Win", () => {
     it("should register player clicks when in input state", () => {
       service.startGame(); // Puts state to sequence
-      (service as any).sequence = [0, 1, 2]; // Manually set sequence for test
+      const firstTileId = service.getSequence()[0];
       service.gameState.set("input"); // Force input state
 
-      service.handlePlayerTileClick(0);
-      expect(service.tiles().find(t => t.id === 0)!.selectedByPlayer).toBe(true);
+      service.handlePlayerTileClick(firstTileId);
+      expect(service.tiles().find(t => t.id === firstTileId)!.selectedByPlayer).toBe(true);
     });
 
     it("should correctly process a winning round and advance state", () => {
@@ -75,8 +76,27 @@ describe("GameService", () => {
       // Check round completion
       expect(service.gameState()).toBe("sequence"); // Ready for next round
       expect(service.currentLevel()).toBe(2);
-      expect(service.score()).toBe(3); // 3 points for 3 tiles
+      expect(service.score()).toBe(6); // 6 points for 3 in-order tiles (2 pts each)
+      expect(service.correctlyClickedTilesInSequence()).toBe(3);
+      expect(service.correctlyClickedTilesNotInSequence()).toBe(0);
       expect(service.numTilesToLight()).toBe(4); // Next round has 4 tiles
+    });
+
+    it("should award 1 point per out-of-order tile and 2 points per in-order tile on a winning round", () => {
+      service.startGame(); // lvl 1, 3 tiles: [a, b, c]
+      const [a, b, c] = service.getSequence();
+      service.gameState.set("input");
+
+      // Click in rotated order [b, c, a] so 0 tiles are in-order and all 3 are out-of-order
+      [b, c, a].forEach((tileId) => {
+        service.handlePlayerTileClick(tileId);
+      });
+
+      expect(service.gameState()).toBe("sequence");
+      expect(service.currentLevel()).toBe(2);
+      expect(service.correctlyClickedTilesInSequence()).toBe(0);
+      expect(service.correctlyClickedTilesNotInSequence()).toBe(3);
+      expect(service.score()).toBe(3);
     });
   });
 
@@ -86,12 +106,12 @@ describe("GameService", () => {
       service.startGame(); // seq has 3 tiles
       service.gameState.set("input");
       service.getSequence().forEach(id => service.handlePlayerTileClick(id));
-      // Now: level 2, numTilesToLight is 4, score 3, grid 3x3
+      // Now: level 2, numTilesToLight is 4, score 6, grid 3x3
 
       // Level 2: 4 tiles. Complete round. Next: 5 tiles. Grid should grow.
       service.gameState.set("input");
       service.getSequence().forEach(id => service.handlePlayerTileClick(id));
-      // Now: level 3, numTilesToLight is 5, score 3+4=7. Grid should be 4x4.
+      // Now: level 3, numTilesToLight is 5, score 6+8=14. Grid should be 4x4.
 
       expect(service.gridSize()).toBe(4);
       expect(service.tiles().length).toBe(16);
@@ -102,41 +122,51 @@ describe("GameService", () => {
   describe("Game Over", () => {
     it("should set gameState to over if player clicks a wrong tile", () => {
       service.startGame();
-      const currentSequence = service.getSequence(); // e.g. [0,1,2]
+      const currentSequence = service.getSequence(); // e.g. [a, b, c]
       service.gameState.set("input");
 
-      // Find a tile not in sequence
-      let wrongTileId = -1;
-      for(let i=0; i < service.tiles().length; i++) {
-        if(!currentSequence.includes(i)) {
-          wrongTileId = i;
-          break;
-        }
-      }
+      const wrongTile = service.tiles().find(t => !currentSequence.includes(t.id))!;
 
       service.handlePlayerTileClick(currentSequence[0]); // Correct
-      service.handlePlayerTileClick(wrongTileId); // Incorrect
-
-      // To trigger checkRound, playerInput length must match sequence length
-      // This part of test needs to align with how checkRound is triggered for failure.
-      // If checkRound logic changes to fail early, this test part will simplify.
-      // For now, assume we need to fill up the input:
-      const inputsToTriggerCheck = [currentSequence[0], wrongTileId];
-      while(inputsToTriggerCheck.length < currentSequence.length) {
-        // Add dummy inputs, can be any tile not yet selected
-        const nextDummy = service.tiles().map(t=>t.id).find(id => !inputsToTriggerCheck.includes(id));
-        if (nextDummy !== undefined) inputsToTriggerCheck.push(nextDummy); else break;
-      }
-
-      // Reset internal playerInput and tile selections from previous handlePlayerTileClick calls in this test
-      (service as any).playerInput = [];
-      service.tiles.update(tiles => tiles.map(t => ({...t, selectedByPlayer: false })));
-
-      // Now, make the sequence of clicks that includes a wrong one
-      inputsToTriggerCheck.forEach(id => service.handlePlayerTileClick(id));
+      service.handlePlayerTileClick(currentSequence[1]); // Correct
+      service.handlePlayerTileClick(wrongTile.id); // Incorrect (3rd click triggers #checkRound)
 
       expect(service.gameState()).toBe("over");
+    });
+
+    it("should not award points or inflate tile counters on a failed round or across retryLastLevel()", () => {
+      service.startGame();
+      const currentSequence = service.getSequence();
+      service.gameState.set("input");
+
+      const wrongTile = service.tiles().find(t => !currentSequence.includes(t.id))!;
+
+      // Click 2 correct tiles (1 in-order, 1 out-of-order) and 1 wrong tile
+      service.handlePlayerTileClick(currentSequence[0]);
+      service.handlePlayerTileClick(currentSequence[2]);
+      service.handlePlayerTileClick(wrongTile.id);
+
+      expect(service.gameState()).toBe("over");
+      expect(service.score()).toBe(0);
+      expect(service.correctlyClickedTilesInSequence()).toBe(0);
+      expect(service.correctlyClickedTilesNotInSequence()).toBe(0);
+
+      // Retry level and fail again; score and counters must still remain 0
+      service.retryLastLevel();
+      const retrySequence = service.getSequence();
+      service.gameState.set("input");
+      const retryWrongTile = service.tiles().find(t => !retrySequence.includes(t.id))!;
+
+      service.handlePlayerTileClick(retrySequence[0]);
+      service.handlePlayerTileClick(retrySequence[1]);
+      service.handlePlayerTileClick(retryWrongTile.id);
+
+      expect(service.gameState()).toBe("over");
+      expect(service.score()).toBe(0);
+      expect(service.correctlyClickedTilesInSequence()).toBe(0);
+      expect(service.correctlyClickedTilesNotInSequence()).toBe(0);
     });
   });
 
 });
+
