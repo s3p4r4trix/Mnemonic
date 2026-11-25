@@ -1,8 +1,14 @@
 <h1 mat-dialog-title class="game-over-title">Game Over!</h1>
 <div mat-dialog-content class="game-over">
+  @if (gameService.lastRunWasNewBest()) {
+    <div class="new-best-pill">New Personal Best!</div>
+  } @else if (gameService.isUnrankedRetry()) {
+    <div class="unranked-note">Unranked retry (not saved to stats)</div>
+  }
   <div class="stats-container">
     <p>Level: {{ gameService.currentLevel() }}</p>
-    <p>Tiles to remember: {{ gameService.numTilesToLight() }}</p>
+    <p>Max cleared span: {{ gameService.maxClearedSpan() }}</p>
+    <p>Best streak: {{ gameService.bestRunStreak() }}</p>
     <p>Correctly clicked in sequence: {{ correctlyClickedTilesInSequence() }}</p>
     <p>Correctly clicked not in sequence: {{ correctlyClickedTilesNotInSequence() }}</p>
 

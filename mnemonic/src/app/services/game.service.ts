@@ -1,13 +1,22 @@
 import {computed, DestroyRef, inject, Injectable, signal} from "@angular/core";
 import {Tile} from '../models/tile.model';
+import {SoundService} from './sound.service';
+import {StatsService} from './stats.service';
 
 export type GameState = "idle" | "sequence" | "input" | "checking" | "round-cleared" | "over";
+
+export function streakMultiplier(streak: number): number {
+  if (streak <= 1) return 1;
+  return Math.min(2, 1 + 0.25 * (streak - 1));
+}
 
 @Injectable({
   providedIn: "root",
 })
 export class GameService {
   readonly #destroyRef = inject(DestroyRef);
+  readonly #soundService = inject(SoundService);
+  readonly #statsService = inject(StatsService);
 
   // Game State
   currentLevel = signal(1);
@@ -16,6 +25,16 @@ export class GameService {
   score = signal(0);
   gameState = signal<GameState>("idle");
   selectedCount = signal(0);
+
+  // Streak & Run Stats
+  streak = signal(0);
+  bestRunStreak = signal(0);
+  maxClearedSpan = signal(0);
+  isUnrankedRetry = signal(false);
+  lastRoundPoints = signal(0);
+  lastRoundMultiplier = signal(1);
+  lastRunWasNewBest = signal(false);
+  currentMultiplier = computed(() => streakMultiplier(this.streak()));
 
   // Viewport & Grid Configuration
   readonly #viewport = signal({
@@ -78,6 +97,13 @@ export class GameService {
     this.numTilesToLight.set(3);
     this.gridSize.set(3);
     this.score.set(0);
+    this.streak.set(0);
+    this.bestRunStreak.set(0);
+    this.maxClearedSpan.set(0);
+    this.isUnrankedRetry.set(false);
+    this.lastRoundPoints.set(0);
+    this.lastRoundMultiplier.set(1);
+    this.lastRunWasNewBest.set(false);
     this.initializeGrid();
     this.nextRound();
   }
@@ -85,6 +111,11 @@ export class GameService {
   retryLastLevel(): void {
     this.#playerInput = []; // Clear previous input
     this.selectedCount.set(0);
+    this.isUnrankedRetry.set(true);
+    this.streak.set(0);
+    this.lastRoundPoints.set(0);
+    this.lastRoundMultiplier.set(1);
+    this.lastRunWasNewBest.set(false);
     // Ensure tiles are reset visually (no selections, no final state colors)
     // but maintain the current grid size and level parameters.
     this.tiles.update(tiles => tiles.map(t => this.#createDefaultTile(t.id)));
@@ -165,11 +196,13 @@ export class GameService {
       // Already selected - do nothing
       return;
     }
+    const tapIndex = this.#playerInput.length;
     this.#playerInput.push(tileId);
     this.selectedCount.set(this.#playerInput.length);
     this.tiles.update(tiles =>
       tiles.map(t => (t.id === tileId ? { ...t, selectedByPlayer: true } : t))
     );
+    this.#soundService.playStepTone(tapIndex, "input");
 
     // Check if player has made enough selections
     if (this.#playerInput.length === this.#sequence.length) {
@@ -198,11 +231,30 @@ export class GameService {
     const correctSelections = inSequenceCount + notInSequenceCount === this.#sequence.length;
 
     if (correctSelections) {
+      const isPerfect = inSequenceCount === this.#sequence.length;
+      const nextStreak = isPerfect ? this.streak() + 1 : 0;
+      const multiplier = isPerfect ? streakMultiplier(nextStreak) : 1;
+      const basePoints = inSequenceCount * 2 + notInSequenceCount;
+      const roundPoints = Math.round(basePoints * multiplier);
+
+      this.streak.set(nextStreak);
+      if (nextStreak > this.bestRunStreak()) {
+        this.bestRunStreak.set(nextStreak);
+      }
+      this.maxClearedSpan.set(Math.max(this.maxClearedSpan(), this.#sequence.length));
+      this.lastRoundPoints.set(roundPoints);
+      this.lastRoundMultiplier.set(multiplier);
+
       this.correctlyClickedTilesInSequence.update(s => s + inSequenceCount);
       this.correctlyClickedTilesNotInSequence.update(s => s + notInSequenceCount);
-      this.score.update(s => s + (inSequenceCount * 2) + notInSequenceCount);
+      this.score.update(s => s + roundPoints);
+      this.#soundService.playRoundCleared(nextStreak);
       this.gameState.set("round-cleared");
     } else {
+      this.streak.set(0);
+      this.lastRoundPoints.set(0);
+      this.lastRoundMultiplier.set(1);
+
       // Update tiles with final states and 1-based sequence order before setting the game to over
       const sequence = this.#sequence;
       const playerInput = this.#playerInput;
@@ -221,6 +273,21 @@ export class GameService {
         })
       );
 
+      if (!this.isUnrankedRetry()) {
+        const { isNewBestScore } = this.#statsService.recordRun({
+          score: this.score(),
+          level: this.currentLevel(),
+          maxSpan: this.maxClearedSpan(),
+          bestStreak: this.bestRunStreak(),
+          inSequenceTiles: this.correctlyClickedTilesInSequence(),
+          outOfSequenceTiles: this.correctlyClickedTilesNotInSequence(),
+        });
+        this.lastRunWasNewBest.set(isNewBestScore);
+      } else {
+        this.lastRunWasNewBest.set(false);
+      }
+
+      this.#soundService.playGameOver();
       this.gameState.set("over");
     }
   }

@@ -233,12 +233,25 @@ async function main() {
     assert.match(hudIdle, /LEVEL 1.*SCORE 0.*TILES 0 \/ 3/i);
     await cdp.screenshot(screenshotsDir, '1_idle_light.png');
 
-    // 2. Toggle theme to dark mode
+    // 2. Toggle theme to dark mode & verify mute toggle persistence
     const initialDark = await cdp.eval(`document.body.classList.contains('dark')`);
     await cdp.eval(`document.querySelector('#theme-toggle-button')?.click()`);
     await sleep(150);
     const toggledDark = await cdp.eval(`document.body.classList.contains('dark')`);
     assert.notEqual(toggledDark, initialDark, 'Theme toggle should flip dark mode class');
+
+    const initialMuted = await cdp.eval(`document.querySelector('#mute-toggle-button')?.getAttribute('aria-pressed')`);
+    assert.equal(initialMuted, 'false', 'Mute toggle should default to unmuted');
+    await cdp.eval(`document.querySelector('#mute-toggle-button')?.click()`);
+    await sleep(100);
+    const mutedAfterClick = await cdp.eval(`({
+      pressed: document.querySelector('#mute-toggle-button')?.getAttribute('aria-pressed'),
+      stored: localStorage.getItem('mnemonic:muted'),
+    })`);
+    assert.deepEqual(mutedAfterClick, { pressed: 'true', stored: 'true' });
+    // Unmute again so audio code paths execute during gameplay
+    await cdp.eval(`document.querySelector('#mute-toggle-button')?.click()`);
+    await sleep(100);
 
     // 3. Start game and record the flashed sequence via MutationObserver
     await cdp.eval(`
@@ -269,7 +282,7 @@ async function main() {
     })()`);
     assert.deepEqual(arrowFocus, { afterRight: '1', afterDown: '4' });
 
-    // 5. Complete Level 1 in exact order and verify Round Cleared! banner
+    // 5. Complete Level 1 in exact order and verify Round Cleared! banner + Streak badge
     await cdp.eval(`document.querySelector('button[data-tile-id="${seq1[0]}"]')?.click()`);
     await sleep(100);
     const hudMidInput = await cdp.eval(`document.querySelector('.stats')?.innerText?.replace(/\\s+/g, ' ').trim()`);
@@ -280,17 +293,19 @@ async function main() {
     await cdp.eval(`document.querySelector('button[data-tile-id="${seq1[2]}"]')?.click()`);
     await sleep(150);
     const clearedBanner = await cdp.eval(`document.querySelector('.round-cleared-banner')?.textContent?.trim()`);
+    const streakBadge = await cdp.eval(`document.querySelector('.streak-badge')?.textContent?.replace(/\\s+/g, ' ').trim()`);
     assert.equal(clearedBanner, 'Round Cleared!');
+    assert.equal(streakBadge, 'Streak 1');
     await cdp.screenshot(screenshotsDir, '3_round_cleared.png');
 
-    // 6. Wait for Level 2 input phase and trigger Game Over to verify board review overlays
+    // 6. Wait for Level 2 input phase and trigger Game Over to verify board review overlays + stats persistence
     await cdp.eval(`window.__recordedSeq = [];`);
     await waitForMessage(cdp, 'Your turn');
     const seq2 = await cdp.eval(`window.__recordedSeq`);
     assert.equal(seq2.length, 4, `Expected 4 flashed tiles on level 2, got ${JSON.stringify(seq2)}`);
 
     const hudLevel2 = await cdp.eval(`document.querySelector('.stats')?.innerText?.replace(/\\s+/g, ' ').trim()`);
-    assert.match(hudLevel2, /LEVEL 2.*SCORE 6.*TILES 0 \/ 4/i);
+    assert.match(hudLevel2, /LEVEL 2.*SCORE 6.*BEST 0.*TILES 0 \/ 4/i);
 
     const wrongTiles = await cdp.eval(`
       [...document.querySelectorAll('button[data-tile-id]')]
@@ -304,14 +319,21 @@ async function main() {
     await cdp.eval(`document.querySelector('button[data-tile-id="${wrongTiles[1]}"]')?.click()`);
     await sleep(250);
 
-    const dialogVisible = await cdp.eval(`Boolean(document.querySelector('app-game-over-dialog'))`);
-    assert.equal(dialogVisible, true, 'GameOverDialogComponent should open on failure');
+    const gameOverState = await cdp.eval(`({
+      visible: Boolean(document.querySelector('app-game-over-dialog')),
+      newBestText: document.querySelector('app-game-over-dialog .new-best-pill')?.textContent?.trim() || '',
+    })`);
+    assert.equal(gameOverState.visible, true, 'GameOverDialogComponent should open on failure');
+    assert.equal(gameOverState.newBestText, 'New Personal Best!');
 
     await cdp.eval(
       `[...document.querySelectorAll('app-game-over-dialog button')].find(b => b.textContent.trim() === 'Close')?.click()`
     );
     await sleep(250);
     await cdp.screenshot(screenshotsDir, '4_gameover_review.png');
+
+    const hudAfterGameOver = await cdp.eval(`document.querySelector('.stats')?.innerText?.replace(/\\s+/g, ' ').trim()`);
+    assert.match(hudAfterGameOver, /BEST 6/i);
 
     const review = await cdp.eval(`({
       hits: document.querySelectorAll('button.tile.correct-clicked').length,
@@ -320,6 +342,38 @@ async function main() {
       orders: [...document.querySelectorAll('.tile-order')].map(el => el.textContent.trim()).sort(),
     })`);
     assert.deepEqual(review, { hits: 2, missed: 2, wrong: 2, orders: ['1', '2', '3', '4'] });
+
+    // 7. Reload page to verify localStorage persistence, then open Stats dialog and test two-step Reset Stats
+    await cdp.send('Page.reload', { ignoreCache: true });
+    for (let i = 0; i < 40; i++) {
+      const ready = await cdp.eval(`Boolean(document.querySelector('#stats-button'))`);
+      if (ready) break;
+      await sleep(150);
+    }
+    const hudAfterReload = await cdp.eval(`document.querySelector('.stats')?.innerText?.replace(/\\s+/g, ' ').trim()`);
+    assert.match(hudAfterReload, /BEST 6/i, 'Personal best should persist across page reload');
+
+    await cdp.eval(`document.querySelector('#stats-button')?.click()`);
+    await sleep(250);
+    const statsDialogText = await cdp.eval(
+      `document.querySelector('app-stats-dialog')?.innerText?.replace(/\\s+/g, ' ').trim() || ''`
+    );
+    assert.match(statsDialogText, /BEST SCORE 6/i);
+    assert.match(statsDialogText, /MAX SPAN 3/i);
+    assert.match(statsDialogText, /ORDER ACCURACY 100%/i);
+    await cdp.screenshot(screenshotsDir, '5_stats_dialog.png');
+
+    await cdp.eval(`document.querySelector('#reset-stats-button')?.click()`);
+    await sleep(150);
+    await cdp.eval(`document.querySelector('#confirm-reset-stats')?.click()`);
+    await sleep(150);
+    const statsAfterReset = await cdp.eval(`({
+      stored: localStorage.getItem('mnemonic:stats:v1'),
+      dialogText: document.querySelector('app-stats-dialog')?.innerText?.replace(/\\s+/g, ' ').trim() || '',
+    })`);
+    assert.equal(statsAfterReset.stored, null);
+    assert.match(statsAfterReset.dialogText, /No ranked runs recorded yet/i);
+
     assert.deepEqual(cdp.consoleErrors, [], `Unexpected console errors: ${cdp.consoleErrors.join('; ')}`);
 
     console.log(
@@ -330,9 +384,15 @@ async function main() {
           checks: {
             title,
             themeToggle: true,
+            muteToggle: true,
             arrowFocus,
             clearedBanner,
+            streakBadge,
             hudLevel2,
+            hudAfterGameOver,
+            hudAfterReload,
+            newBestText: gameOverState.newBestText,
+            statsDialogReset: true,
             review,
             consoleErrors: 0,
           },

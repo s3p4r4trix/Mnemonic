@@ -39,4 +39,23 @@ describe('App', () => {
     expect(document.body.classList.contains('dark')).toBe(true);
     expect(localStorage.getItem('theme')).toBe('dark');
   });
+
+  it('should toggle sound mute state and persist it', () => {
+    localStorage.removeItem('mnemonic:muted');
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+    const app = fixture.componentInstance;
+    const muteBtn = (fixture.nativeElement as HTMLElement).querySelector('#mute-toggle-button') as HTMLButtonElement;
+
+    expect(app.soundService.muted()).toBe(false);
+    expect(muteBtn.getAttribute('aria-pressed')).toBe('false');
+
+    muteBtn.click();
+    fixture.detectChanges();
+
+    expect(app.soundService.muted()).toBe(true);
+    expect(muteBtn.getAttribute('aria-pressed')).toBe('true');
+    expect(localStorage.getItem('mnemonic:muted')).toBe('true');
+    localStorage.removeItem('mnemonic:muted');
+  });
 });

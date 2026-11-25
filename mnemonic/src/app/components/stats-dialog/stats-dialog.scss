@@ -1,0 +1,131 @@
+.stats-dialog-title {
+  margin-bottom: 4px;
+}
+
+.stats-dialog-content {
+  min-width: min(320px, 78vw);
+  max-width: 440px;
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.metric-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px 8px;
+  border-radius: 10px;
+  background-color: var(--md-sys-color-surface-container-high, var(--md-sys-color-primary-container));
+  color: var(--md-sys-color-on-surface);
+  text-align: center;
+}
+
+.metric-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.78;
+}
+
+.metric-value {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--md-sys-color-primary);
+  margin-top: 2px;
+}
+
+.accuracy-breakdown {
+  margin: 0 0 12px;
+  font-size: 0.85rem;
+  opacity: 0.85;
+  text-align: center;
+}
+
+.section-heading {
+  margin: 0 0 8px;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.8;
+}
+
+.empty-state {
+  margin: 0;
+  font-size: 0.9rem;
+  opacity: 0.8;
+}
+
+.runs-table-wrap {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.runs-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 4px;
+  font-size: 0.85rem;
+
+  th {
+    text-align: left;
+    font-size: 0.72rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    opacity: 0.7;
+    padding: 2px 8px 4px;
+  }
+
+  tbody tr {
+    background-color: var(--md-sys-color-surface-container, transparent);
+  }
+
+  td {
+    padding: 6px 8px;
+  }
+
+  td:first-child {
+    border-radius: 6px 0 0 6px;
+  }
+
+  td:last-child {
+    border-radius: 0 6px 6px 0;
+  }
+}
+
+.run-score {
+  font-weight: 600;
+  color: var(--md-sys-color-primary);
+}
+
+.stats-dialog-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.reset-confirm {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.confirm-reset-btn {
+  --mat-button-filled-container-color: var(--md-sys-color-error);
+  --mat-button-filled-label-text-color: var(--md-sys-color-on-error);
+}
+
+.reset-prompt {
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.spacer {
+  flex: 1 1 auto;
+}
