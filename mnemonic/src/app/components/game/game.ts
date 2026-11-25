@@ -63,6 +63,10 @@ export class GameComponent {
     this.gameService.startGame();
   }
 
+  retryLevel(): void {
+    this.gameService.retryLastLevel();
+  }
+
   async displaySequence(token = ++this.#playbackToken): Promise<void> {
     const sequence = this.gameService.getSequence();
     if (!sequence || sequence.length === 0) return;

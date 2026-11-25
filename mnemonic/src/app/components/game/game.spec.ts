@@ -87,4 +87,28 @@ describe("GameComponent", () => {
     expect(text2).toContain("Streak 2");
     expect(text2).toContain("1.25x");
   });
+
+  it("should show Retry Level button after game over (even when summary dialog is closed) and retry that level on click", () => {
+    const initialButtons = Array.from(
+      (fixture.nativeElement as HTMLElement).querySelectorAll("button")
+    ).map(b => b.textContent?.trim());
+    expect(initialButtons).toContain("Start Game");
+    expect(initialButtons).not.toContain("Retry Level");
+
+    const retrySpy = spyOn(gameService, "retryLastLevel").and.callThrough();
+    gameService.gameState.set("over");
+    fixture.detectChanges();
+
+    const overButtons = Array.from(
+      (fixture.nativeElement as HTMLElement).querySelectorAll("button")
+    );
+    const retryButton = overButtons.find(b => b.textContent?.trim() === "Retry Level");
+    expect(retryButton).toBeDefined();
+
+    retryButton?.click();
+    fixture.detectChanges();
+
+    expect(retrySpy).toHaveBeenCalledTimes(1);
+    expect(gameService.gameState()).toBe("sequence");
+  });
 });

@@ -70,3 +70,21 @@
   font-size: 0.82rem;
   color: var(--md-sys-color-on-surface-variant);
 }
+
+.dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  width: 100%;
+
+  @media (max-width: 480px) {
+    flex-direction: column-reverse;
+    align-items: stretch;
+    gap: 10px;
+
+    button {
+      width: 100%;
+      margin-left: 0;
+    }
+  }
+}
