@@ -142,16 +142,14 @@ export class GameService {
       // Incorrect clicks (not in sequence at all) do not add to score as per new logic.
     }
 
-    this.correctlyClickedTilesInSequence.update(s => s + inSequenceCount);
-    this.correctlyClickedTilesNotInSequence.update(s => s + notInSequenceCount);
-    this.score.update(s => s + (inSequenceCount * 2) + notInSequenceCount);
-
-
     const correctSelections = this.#playerInput.every(id => this.#sequence.includes(id)) &&
       this.#playerInput.length === this.#sequence.length &&
       this.#sequence.every(id => this.#playerInput.includes(id));
 
     if (correctSelections) {
+      this.correctlyClickedTilesInSequence.update(s => s + inSequenceCount);
+      this.correctlyClickedTilesNotInSequence.update(s => s + notInSequenceCount);
+      this.score.update(s => s + (inSequenceCount * 2) + notInSequenceCount);
       this.currentLevel.update(l => l + 1);
       // Progression logic
       this.numTilesToLight.update(n => n + 1);
