@@ -54,6 +54,31 @@
       }
     </div>
 
+    <div class="speed-picker">
+      <div class="speed-selector" role="radiogroup" aria-label="Speed preset">
+        @for (preset of speedPresets; track preset.id) {
+          <button
+            type="button"
+            class="mode-pill"
+            role="radio"
+            [attr.aria-checked]="gameService.speedPreset() === preset.id"
+            [class.active]="gameService.speedPreset() === preset.id"
+            (click)="selectSpeedPreset(preset.id)">
+            {{ preset.label }}
+          </button>
+        }
+      </div>
+      <button
+        type="button"
+        class="progressive-toggle"
+        role="switch"
+        [attr.aria-checked]="gameService.progressiveSpeed()"
+        [class.active]="gameService.progressiveSpeed()"
+        (click)="toggleProgressiveSpeed()">
+        Speed up each level
+      </button>
+    </div>
+
     <div class="game-actions">
       <button matButton="elevated" (click)="startGame()">
         Start Game

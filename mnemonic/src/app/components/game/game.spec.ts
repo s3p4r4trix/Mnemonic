@@ -1,7 +1,11 @@
 import { provideZonelessChangeDetection } from "@angular/core";
 import { ComponentFixture, TestBed } from "@angular/core/testing";
 import { GameComponent } from "./game";
-import { GameService } from "../../services/game.service";
+import {
+  GameService,
+  PROGRESSIVE_SPEED_STORAGE_KEY,
+  SPEED_PRESET_STORAGE_KEY,
+} from "../../services/game.service";
 import { SoundService } from "../../services/sound.service";
 import { STATS_STORAGE_KEY } from "../../services/stats.service";
 
@@ -13,6 +17,8 @@ describe("GameComponent", () => {
   beforeEach(async () => {
     localStorage.removeItem(STATS_STORAGE_KEY);
     localStorage.removeItem("mnemonic:muted");
+    localStorage.removeItem(SPEED_PRESET_STORAGE_KEY);
+    localStorage.removeItem(PROGRESSIVE_SPEED_STORAGE_KEY);
     jasmine.clock().install();
     await TestBed.configureTestingModule({
       imports: [GameComponent],
@@ -30,6 +36,8 @@ describe("GameComponent", () => {
     jasmine.clock().uninstall();
     localStorage.removeItem(STATS_STORAGE_KEY);
     localStorage.removeItem("mnemonic:muted");
+    localStorage.removeItem(SPEED_PRESET_STORAGE_KEY);
+    localStorage.removeItem(PROGRESSIVE_SPEED_STORAGE_KEY);
   });
 
   it("should render Level, Score, Best, and Tiles progress in the HUD", () => {
@@ -110,5 +118,41 @@ describe("GameComponent", () => {
 
     expect(retrySpy).toHaveBeenCalledTimes(1);
     expect(gameService.gameState()).toBe("sequence");
+  });
+
+  it("should allow selecting a speed preset and progressive toggle, and play sequence using preset timings", async () => {
+    const host = fixture.nativeElement as HTMLElement;
+    const speedBtn = host.querySelector('[aria-label="Speed preset"] button:nth-child(3)') as HTMLButtonElement | null;
+    const progressiveBtn = host.querySelector("button.progressive-toggle") as HTMLButtonElement | null;
+
+    expect(speedBtn?.textContent?.trim()).toBe("Speed");
+    expect(progressiveBtn?.getAttribute("aria-checked")).toBe("false");
+
+    speedBtn?.click();
+    progressiveBtn?.click();
+    fixture.detectChanges();
+
+    expect(gameService.speedPreset()).toBe("speed");
+    expect(gameService.progressiveSpeed()).toBeTrue();
+    expect(speedBtn?.getAttribute("aria-checked")).toBe("true");
+    expect(progressiveBtn?.getAttribute("aria-checked")).toBe("true");
+
+    // Start game on level 1 in Speed preset: 3 * (450 + 180) + 650 = 2540 ms
+    gameService.startGame();
+    fixture.detectChanges();
+    expect(gameService.gameState()).toBe("sequence");
+
+    for (let i = 0; i < 3; i++) {
+      jasmine.clock().tick(450);
+      await Promise.resolve();
+      jasmine.clock().tick(180);
+      await Promise.resolve();
+    }
+
+    expect(gameService.gameState()).toBe("sequence");
+    jasmine.clock().tick(650);
+    await Promise.resolve();
+
+    expect(gameService.gameState()).toBe("input");
   });
 });
