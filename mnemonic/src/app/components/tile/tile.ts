@@ -1,4 +1,4 @@
-import {Component, computed, inject, input, output} from "@angular/core"; // Added inject
+import {Component, computed, inject, input, output, ChangeDetectionStrategy} from "@angular/core"; // Added inject
 import {GameService} from "../../services/game.service";
 import {Tile} from '../../models/tile.model';
 
@@ -12,7 +12,6 @@ import {Tile} from '../../models/tile.model';
       [style.height]="this.tileSize() + 'px'"
       [class.lit]="tile().lit && gameService.gameState() !== 'over'"
       [class.selected-by-player]="tile().selectedByPlayer && gameService.gameState() !== 'over'"
-      [class.correct-selection]="tile().selectedByPlayer && tile().lit && gameService.gameState() === 'checking'"
       [class.correct-clicked]="gameService.gameState() === 'over' && tile().isCorrectAndClicked"
       [class.correct-not-clicked]="gameService.gameState() === 'over' && tile().isCorrectAndNotClicked"
       [class.incorrect-clicked]="gameService.gameState() === 'over' && tile().isIncorrectAndClicked"
@@ -21,6 +20,7 @@ import {Tile} from '../../models/tile.model';
       [attr.aria-pressed]="tile().selectedByPlayer"
       [attr.aria-label]="'Tile ' + tile().id"></div>
   `,
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: "./tile.scss",
 })
 export class TileComponent {

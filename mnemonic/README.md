@@ -1,59 +1,52 @@
-# Mnemonic
+# Mnemonic Trainer
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 20.0.1.
+Mnemonic Trainer is an Angular 22 sequence memory game. The application flashes a sequence of tiles on a square grid, then prompts you to click the same tiles back.
 
-## Development server
+## Game rules
 
-To start a local development server, run:
+Each round plays the target sequence in two steps:
 
-```bash
-ng serve
-```
+1. Each tile in the sequence lights up for 700 ms, with a 300 ms pause between tiles.
+2. All tiles in the sequence light up together for 1000 ms.
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+After the sequence finishes, click the tiles that lit up:
 
-## Code scaffolding
+- **Starting state.** Level 1 starts on a 3x3 grid (`gridSize = 3`) with 3 tiles in the sequence (`numTilesToLight = 3`).
+- **Scoring.** Clicking a sequence tile in its exact index order awards 2 points (`correctlyClickedTilesInSequence`). Clicking a sequence tile at a different index awards 1 point (`correctlyClickedTilesNotInSequence`). Points only count when you select all tiles in the sequence without picking a wrong tile.
+- **Level progression.** Completing a round advances `currentLevel` by 1 and adds 1 tile to `numTilesToLight`. When `numTilesToLight` exceeds half of the total tiles on the board (`(gridSize * gridSize) / 2`), `gridSize` increases by 1.
+- **Game over.** Selecting any tile outside the sequence ends the round when your selection count reaches the sequence length. The board highlights your hits and misses, and `GameOverDialogComponent` lets you start a new game at level 1 or retry the failed level with a new random sequence.
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+## Project layout
 
-```bash
-ng generate component component-name
-```
+All commands below run from the `mnemonic/` directory:
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+- `src/app/services/game.service.ts` holds the signal state (`tiles`, `score`, `currentLevel`, `gridSize`, `numTilesToLight`, `gameState`) and scoring logic.
+- `src/app/components/game/` drives the sequence playback loop, theme toggle, and game-over dialog.
+- `src/app/components/grid/` and `src/app/components/tile/` render the dynamic CSS grid and tile state classes.
+- `src/app/components/game-over-dialog/` renders round statistics and retry actions.
 
-```bash
-ng generate --help
-```
+## Development commands
 
-## Building
-
-To build the project run:
-
-```bash
-ng build
-```
-
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Karma](https://karma-runner.github.io) test runner, use the following command:
+Install dependencies from `mnemonic/`:
 
 ```bash
-ng test
+npm ci
 ```
 
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
+Start the local development server at `http://localhost:4200/`:
 
 ```bash
-ng e2e
+npm start
 ```
 
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
+Run the unit test suite once in headless Chrome:
 
-## Additional Resources
+```bash
+npx ng test --watch=false --browsers=ChromeHeadless
+```
 
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+Build the static production bundle (writes to `../docs` with `--base-href=./` as configured in `angular.json` and `package.json`):
+
+```bash
+npm run build
+```

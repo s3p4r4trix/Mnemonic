@@ -36,7 +36,7 @@ export class GameService {
     const size = this.gridSize();
     const newTiles: Tile[] = [];
     for (let i = 0; i < size * size; i++) {
-      newTiles.push({ id: i, lit: false, selectedByPlayer: false, isCorrectAndClicked: false, isCorrectAndNotClicked: false, isIncorrectAndClicked: false });
+      newTiles.push(this.#createDefaultTile(i));
     }
     this.tiles.set(newTiles);
     this.#playerInput = [];
@@ -54,30 +54,11 @@ export class GameService {
     this.gameState.set("sequence");
   }
 
-  // Reset game
-  resetGame(): void {
-    this.currentLevel.set(1);
-    this.correctlyClickedTilesInSequence.set(0);
-    this.correctlyClickedTilesNotInSequence.set(0);
-    this.numTilesToLight.set(3);
-    this.gridSize.set(3);
-    this.gameState.set("idle");
-  }
-
   retryLastLevel(): void {
     this.#playerInput = []; // Clear previous input
     // Ensure tiles are reset visually (no selections, no final state colors)
     // but maintain the current grid size and level parameters.
-    this.tiles.update(tiles =>
-      tiles.map(t => ({
-        ...t,
-        lit: false,
-        selectedByPlayer: false,
-        isCorrectAndClicked: false,
-        isCorrectAndNotClicked: false,
-        isIncorrectAndClicked: false
-      }))
-    );
+    this.tiles.update(tiles => tiles.map(t => this.#createDefaultTile(t.id)));
     // The score is maintained from the point of failure.
     // currentLevel, numTilesToLight, and gridSize are already set to what they were for the failed level.
     this.#generateSequence(); // Generate a new sequence for the same level settings
@@ -86,10 +67,21 @@ export class GameService {
 
   nextRound(): void {
     this.#playerInput = [];
-    this.tiles.update(tiles => tiles.map(t => ({ ...t, lit: false, selectedByPlayer: false, isCorrectAndClicked: false, isCorrectAndNotClicked: false, isIncorrectAndClicked: false })));
+    this.tiles.update(tiles => tiles.map(t => this.#createDefaultTile(t.id)));
     this.#generateSequence();
     // Logic to display a sequence will be handled by components observing state
     this.gameState.set("sequence");
+  }
+
+  #createDefaultTile(id: number): Tile {
+    return {
+      id,
+      lit: false,
+      selectedByPlayer: false,
+      isCorrectAndClicked: false,
+      isCorrectAndNotClicked: false,
+      isIncorrectAndClicked: false,
+    };
   }
 
   #generateSequence(): void {
@@ -142,16 +134,12 @@ export class GameService {
       // Incorrect clicks (not in sequence at all) do not add to score as per new logic.
     }
 
-    this.correctlyClickedTilesInSequence.update(s => s + inSequenceCount);
-    this.correctlyClickedTilesNotInSequence.update(s => s + notInSequenceCount);
-    this.score.update(s => s + (inSequenceCount * 2) + notInSequenceCount);
-
-
-    const correctSelections = this.#playerInput.every(id => this.#sequence.includes(id)) &&
-      this.#playerInput.length === this.#sequence.length &&
-      this.#sequence.every(id => this.#playerInput.includes(id));
+    const correctSelections = inSequenceCount + notInSequenceCount === this.#sequence.length;
 
     if (correctSelections) {
+      this.correctlyClickedTilesInSequence.update(s => s + inSequenceCount);
+      this.correctlyClickedTilesNotInSequence.update(s => s + notInSequenceCount);
+      this.score.update(s => s + (inSequenceCount * 2) + notInSequenceCount);
       this.currentLevel.update(l => l + 1);
       // Progression logic
       this.numTilesToLight.update(n => n + 1);

@@ -1,13 +1,14 @@
-import {Component, inject} from '@angular/core';
-import {CommonModule} from '@angular/common';
+import {Component, inject, ChangeDetectionStrategy} from '@angular/core';
+
 import {MatDialogModule, MatDialogRef} from '@angular/material/dialog';
 import {MatButtonModule} from '@angular/material/button';
 import {GameService} from '../../services/game.service';
 
 @Component({
   selector: 'app-game-over-dialog',
-  imports: [CommonModule, MatDialogModule, MatButtonModule],
+  imports: [MatDialogModule, MatButtonModule],
   templateUrl: './game-over-dialog.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./game-over-dialog.scss']
 })
 export class GameOverDialogComponent {

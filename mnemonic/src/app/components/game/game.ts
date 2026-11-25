@@ -1,15 +1,16 @@
-import {Component, effect, inject} from "@angular/core";
+import {Component, effect, inject, ChangeDetectionStrategy} from "@angular/core";
 import {GameService} from "../../services/game.service";
 import {GridComponent} from "../grid/grid";
-import {CommonModule} from "@angular/common";
+
 import {MatDialog, MatDialogModule} from "@angular/material/dialog";
 import {MatButtonModule} from "@angular/material/button";
 import {GameOverDialogComponent} from "../game-over-dialog/game-over-dialog";
 
 @Component({
   selector: "app-game",
-  imports: [CommonModule, GridComponent, MatDialogModule, MatButtonModule],
+  imports: [GridComponent, MatDialogModule, MatButtonModule],
   templateUrl: './game.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./game.scss']
 })
 export class GameComponent {
@@ -28,7 +29,6 @@ export class GameComponent {
       // Game over dialog
       if (gameState === 'over') {
         const dialogRef = this.dialog.open(GameOverDialogComponent, {
-          data: { score: this.gameService.score() },
           disableClose: true // Prevent closing by clicking outside or Escape key
         });
 
@@ -41,9 +41,6 @@ export class GameComponent {
             // If 'Close' was clicked (result is undefined) or any other unexpected result,
             // do nothing here. The game remains in the 'over' state, showing the final grid.
             // The user can then use the "Start Game" button on the main screen if they wish to play again.
-            // If they want to go to a fully idle state, they would need a different button/action
-            // that explicitly calls gameService.resetGame(). For now, "Close" on dialog
-            // just closes the dialog and keeps the "over" state.
           }
         });
       }
