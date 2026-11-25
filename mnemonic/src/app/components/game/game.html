@@ -35,6 +35,25 @@
   }
 
   @if (gameService.gameState() === 'idle' || gameService.gameState() === 'over') {
+    <div class="mode-picker">
+      <div class="mode-selector" role="radiogroup" aria-label="Game mode">
+        @for (mode of modes; track mode.id) {
+          <button
+            type="button"
+            class="mode-pill"
+            role="radio"
+            [attr.aria-checked]="gameService.mode() === mode.id"
+            [class.active]="gameService.mode() === mode.id"
+            (click)="selectMode(mode.id)">
+            {{ mode.shortLabel }}
+          </button>
+        }
+      </div>
+      @if (gameService.gameState() === 'idle') {
+        <p class="mode-description">{{ gameService.modeConfig().description }}</p>
+      }
+    </div>
+
     <div class="game-actions">
       <button matButton="elevated" (click)="startGame()">
         Start Game
@@ -55,7 +74,7 @@
     @if (gameService.gameState() === 'sequence') {
       <span>Memorize the sequence...</span>
     } @else if (gameService.gameState() === 'input') {
-      <span>Your turn! Double score when in sequence!</span>
+      <span>{{ gameService.modeConfig().inputHint }}</span>
     } @else if (gameService.gameState() === 'checking') {
       <span>Checking...</span>
     } @else if (gameService.gameState() === 'round-cleared') {

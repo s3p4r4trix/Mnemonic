@@ -1,28 +1,42 @@
 <h1 mat-dialog-title class="stats-dialog-title">Memory Stats</h1>
 
 <div mat-dialog-content class="stats-dialog-content">
+  <div class="stats-mode-tabs" role="tablist" aria-label="Mode statistics">
+    @for (mode of modes; track mode.id) {
+      <button
+        type="button"
+        class="stats-mode-tab"
+        role="tab"
+        [attr.aria-selected]="selectedMode() === mode.id"
+        [class.active]="selectedMode() === mode.id"
+        (click)="selectMode(mode.id)">
+        {{ mode.shortLabel }}
+      </button>
+    }
+  </div>
+
   <div class="metrics-grid" aria-label="Personal best metrics">
     <div class="metric-card">
       <span class="metric-label">Best Score</span>
-      <span class="metric-value">{{ statsService.bestScore() }}</span>
+      <span class="metric-value">{{ selectedStats().bestScore }}</span>
     </div>
     <div class="metric-card">
       <span class="metric-label">Highest Level</span>
-      <span class="metric-value">{{ statsService.highestLevel() }}</span>
+      <span class="metric-value">{{ selectedStats().highestLevel }}</span>
     </div>
     <div class="metric-card">
       <span class="metric-label">Max Span</span>
-      <span class="metric-value">{{ statsService.maxMemorySpan() }}</span>
+      <span class="metric-value">{{ selectedStats().maxMemorySpan }}</span>
     </div>
     <div class="metric-card">
       <span class="metric-label">Best Streak</span>
-      <span class="metric-value">{{ statsService.bestStreak() }}</span>
+      <span class="metric-value">{{ selectedStats().bestStreak }}</span>
     </div>
     <div class="metric-card">
       <span class="metric-label">Order Accuracy</span>
       <span class="metric-value">
-        @if (statsService.orderAccuracyPercent() !== null) {
-          {{ statsService.orderAccuracyPercent() }}%
+        @if (orderAccuracyPercent() !== null) {
+          {{ orderAccuracyPercent() }}%
         } @else {
           —
         }
@@ -30,19 +44,19 @@
     </div>
     <div class="metric-card">
       <span class="metric-label">Games Played</span>
-      <span class="metric-value">{{ statsService.gamesPlayed() }}</span>
+      <span class="metric-value">{{ selectedStats().gamesPlayed }}</span>
     </div>
   </div>
 
-  @if (statsService.orderAccuracyPercent() !== null) {
+  @if (orderAccuracyPercent() !== null) {
     <p class="accuracy-breakdown">
-      Exact-order recall: {{ statsService.orderAccuracyPercent() }}% &middot; Spatial-only recall: {{ statsService.spatialOnlyPercent() }}%
+      Exact-order recall: {{ orderAccuracyPercent() }}% &middot; Spatial-only recall: {{ spatialOnlyPercent() }}%
     </p>
   }
 
   <section class="recent-runs" aria-label="Recent runs">
     <h2 class="section-heading">Recent Runs</h2>
-    @if (statsService.recentRuns().length === 0) {
+    @if (selectedStats().recentRuns.length === 0) {
       <p class="empty-state">No ranked runs recorded yet. Finish a game to track your memory span.</p>
     } @else {
       <div class="runs-table-wrap">
@@ -57,7 +71,7 @@
             </tr>
           </thead>
           <tbody>
-            @for (run of statsService.recentRuns(); track run.id) {
+            @for (run of selectedStats().recentRuns; track run.id) {
               <tr>
                 <td class="run-date">{{ run.timestamp | date: 'MMM d, HH:mm' }}</td>
                 <td class="run-score">{{ run.score }}</td>
@@ -74,10 +88,10 @@
 </div>
 
 <div mat-dialog-actions class="stats-dialog-actions">
-  @if (statsService.gamesPlayed() > 0) {
+  @if (selectedStats().gamesPlayed > 0) {
     @if (confirmingReset()) {
       <div class="reset-confirm">
-        <span class="reset-prompt">Clear all stats?</span>
+        <span class="reset-prompt">Clear {{ selectedModeConfig().shortLabel }} stats?</span>
         <button matButton type="button" (click)="cancelReset()">Cancel</button>
         <button matButton="filled" type="button" id="confirm-reset-stats" class="confirm-reset-btn" (click)="confirmReset()">
           Confirm Reset

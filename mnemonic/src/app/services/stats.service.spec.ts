@@ -1,10 +1,11 @@
 import { provideZonelessChangeDetection } from "@angular/core";
 import { TestBed } from "@angular/core/testing";
-import { STATS_STORAGE_KEY, StatsService } from "./stats.service";
+import { STATS_STORAGE_KEY, STATS_STORAGE_KEY_V2, StatsService } from "./stats.service";
 
 describe("StatsService", () => {
   beforeEach(() => {
     localStorage.removeItem(STATS_STORAGE_KEY);
+    localStorage.removeItem(STATS_STORAGE_KEY_V2);
     TestBed.configureTestingModule({
       providers: [provideZonelessChangeDetection(), StatsService],
     });
@@ -12,6 +13,7 @@ describe("StatsService", () => {
 
   afterEach(() => {
     localStorage.removeItem(STATS_STORAGE_KEY);
+    localStorage.removeItem(STATS_STORAGE_KEY_V2);
   });
 
   it("should start with empty stats when localStorage has no saved data", () => {
@@ -163,5 +165,49 @@ describe("StatsService", () => {
     expect(service.bestScore()).toBe(0);
     expect(service.recentRuns()).toEqual([]);
     expect(localStorage.getItem(STATS_STORAGE_KEY)).toBeNull();
+    expect(localStorage.getItem(STATS_STORAGE_KEY_V2)).toBeNull();
+  });
+
+  it("should migrate v1 stats into classic mode and keep other modes empty", () => {
+    localStorage.setItem(
+      STATS_STORAGE_KEY,
+      JSON.stringify({
+        version: 1,
+        gamesPlayed: 4,
+        bestScore: 42,
+        highestLevel: 5,
+        maxMemorySpan: 6,
+        bestStreak: 3,
+        totalInSequenceTiles: 10,
+        totalOutOfSequenceTiles: 2,
+        recentRuns: [],
+      })
+    );
+
+    const service = TestBed.inject(StatsService);
+    expect(service.statsForMode("classic")().bestScore).toBe(42);
+    expect(service.statsForMode("classic")().gamesPlayed).toBe(4);
+    expect(service.statsForMode("reverse")().gamesPlayed).toBe(0);
+    expect(localStorage.getItem(STATS_STORAGE_KEY_V2)).not.toBeNull();
+  });
+
+  it("should partition recorded runs and resets by mode", () => {
+    const service = TestBed.inject(StatsService);
+    service.recordRun(
+      { score: 12, level: 2, maxSpan: 3, bestStreak: 1, inSequenceTiles: 6, outOfSequenceTiles: 0 },
+      "classic"
+    );
+    service.recordRun(
+      { score: 24, level: 3, maxSpan: 4, bestStreak: 2, inSequenceTiles: 8, outOfSequenceTiles: 0 },
+      "reverse"
+    );
+
+    expect(service.statsForMode("classic")().bestScore).toBe(12);
+    expect(service.statsForMode("reverse")().bestScore).toBe(24);
+    expect(service.statsForMode("strict")().gamesPlayed).toBe(0);
+
+    service.resetStats("classic");
+    expect(service.statsForMode("classic")().gamesPlayed).toBe(0);
+    expect(service.statsForMode("reverse")().bestScore).toBe(24);
   });
 });

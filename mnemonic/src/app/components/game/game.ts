@@ -1,4 +1,5 @@
 import {ChangeDetectionStrategy, Component, DestroyRef, effect, inject} from "@angular/core";
+import {GAME_MODES, GameMode} from "../../models/game-mode.model";
 import {GameService} from "../../services/game.service";
 import {SoundService} from "../../services/sound.service";
 import {StatsService} from "../../services/stats.service";
@@ -23,6 +24,7 @@ const ROUND_CLEARED_MS = 800;
 export class GameComponent {
   gameService = inject(GameService);
   statsService = inject(StatsService);
+  readonly modes = GAME_MODES;
   readonly #soundService = inject(SoundService);
   dialog = inject(MatDialog);
   readonly #destroyRef = inject(DestroyRef);
@@ -59,6 +61,10 @@ export class GameComponent {
     });
   }
 
+  selectMode(mode: GameMode): void {
+    this.gameService.setMode(mode);
+  }
+
   startGame(): void {
     this.gameService.startGame();
   }
@@ -71,16 +77,20 @@ export class GameComponent {
     const sequence = this.gameService.getSequence();
     if (!sequence || sequence.length === 0) return;
 
-    // Light up tiles one by one with ascending pentatonic tones
-    for (let i = 0; i < sequence.length; i++) {
-      if (token !== this.#playbackToken) return;
-      this.gameService.setLitTiles([sequence[i]]);
-      this.#soundService.playStepTone(i, "sequence");
-      await this.#delay(TILE_LIT_MS);
+    if (this.gameService.modeConfig().playback === "sequential") {
+      // Light up tiles one by one with ascending pentatonic tones
+      for (let i = 0; i < sequence.length; i++) {
+        if (token !== this.#playbackToken) return;
+        this.gameService.setLitTiles([sequence[i]]);
+        this.#soundService.playStepTone(i, "sequence");
+        await this.#delay(TILE_LIT_MS);
 
-      if (token !== this.#playbackToken) return;
-      this.gameService.clearLitTiles();
-      await this.#delay(TILE_GAP_MS);
+        if (token !== this.#playbackToken) return;
+        this.gameService.clearLitTiles();
+        await this.#delay(TILE_GAP_MS);
+      }
+    } else {
+      this.#soundService.playStepTone(0, "sequence");
     }
 
     if (token !== this.#playbackToken) return;
