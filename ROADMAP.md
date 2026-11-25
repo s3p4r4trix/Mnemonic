@@ -4,10 +4,17 @@ Planned improvements ordered by priority. Completed Phase 1 work (responsive gri
 
 ## Phase 3: Game Modes and Replayability (Next)
 
-- **Daily Challenge.** Date-seeded PRNG (`YYYY-MM-DD`) so every player gets the same sequence progression, paired with a shareable text summary card.
-- **Practice sandbox and optional lifelines.** Fixed grid size and sequence length practice mode, plus an optional 3-lives or one-time replay-sequence mode.
+- **Daily Challenge and streak tracking.** Date-seeded PRNG (`YYYY-MM-DD`) so every player gets the same sequence progression, paired with a shareable text summary card, consecutive-day streak, and calendar heatmap in the Stats dialog.
+- **Practice sandbox and optional lifelines.** Fixed grid size and sequence length practice mode, plus an optional 3-lives or one-time replay-sequence lifeline.
 
-## Phase 4: Platform and Mobile Experience
+## Phase 4: Cognitive Training Depth
 
+- **Interference and retention delay.** Optional decoy flashes during playback or a brief delay before input to train working-memory maintenance under distraction.
+- **Dual-feature recall.** Tiles flash with distinct colors or symbols in addition to position, requiring combined feature and spatial recall.
+- **Adaptive staircase span test.** A 2-up/1-down diagnostic mode that converges on true working-memory span in roughly 10 rounds.
+
+## Phase 5: Platform, Accessibility, and Analytics
+
+- **Accessibility and motion polish.** Colorblind-safe tile patterns for hit, miss, and wrong states, plus `prefers-reduced-motion` support.
 - **PWA and offline support.** Add `@angular/pwa` (web manifest and service worker) for home-screen install and offline play.
 - **Haptics and cognitive analytics.** Optional `navigator.vibrate()` on mobile taps and a lightweight progress chart tracking working-memory span and recall time across sessions.
