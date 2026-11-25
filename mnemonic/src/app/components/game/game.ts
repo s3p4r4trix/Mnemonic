@@ -1,15 +1,16 @@
-import {Component, effect, inject} from "@angular/core";
+import {Component, effect, inject, ChangeDetectionStrategy} from "@angular/core";
 import {GameService} from "../../services/game.service";
 import {GridComponent} from "../grid/grid";
-import {CommonModule} from "@angular/common";
+
 import {MatDialog, MatDialogModule} from "@angular/material/dialog";
 import {MatButtonModule} from "@angular/material/button";
 import {GameOverDialogComponent} from "../game-over-dialog/game-over-dialog";
 
 @Component({
   selector: "app-game",
-  imports: [CommonModule, GridComponent, MatDialogModule, MatButtonModule],
+  imports: [GridComponent, MatDialogModule, MatButtonModule],
   templateUrl: './game.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./game.scss']
 })
 export class GameComponent {

@@ -1,6 +1,6 @@
 # Mnemonic Trainer
 
-Mnemonic Trainer is an Angular 20 sequence memory game. The application flashes a sequence of tiles on a square grid, then prompts you to click the same tiles back.
+Mnemonic Trainer is an Angular 22 sequence memory game. The application flashes a sequence of tiles on a square grid, then prompts you to click the same tiles back.
 
 ## Game rules
 

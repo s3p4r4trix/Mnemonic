@@ -1,4 +1,4 @@
-import {Component, computed, inject, input, output} from "@angular/core"; // Added inject
+import {Component, computed, inject, input, output, ChangeDetectionStrategy} from "@angular/core"; // Added inject
 import {GameService} from "../../services/game.service";
 import {Tile} from '../../models/tile.model';
 
@@ -20,6 +20,7 @@ import {Tile} from '../../models/tile.model';
       [attr.aria-pressed]="tile().selectedByPlayer"
       [attr.aria-label]="'Tile ' + tile().id"></div>
   `,
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: "./tile.scss",
 })
 export class TileComponent {

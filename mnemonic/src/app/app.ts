@@ -1,12 +1,13 @@
-import {Component, inject, OnInit, signal} from '@angular/core';
-import {CommonModule, DOCUMENT} from '@angular/common';
+import {Component, inject, OnInit, signal, ChangeDetectionStrategy} from '@angular/core';
+import { DOCUMENT } from '@angular/common';
 import {GameComponent} from './components/game/game';
 import {MatButton} from '@angular/material/button';
 
 @Component({
   selector: 'app-root',
-  imports: [CommonModule, GameComponent, MatButton],
+  imports: [GameComponent, MatButton],
   templateUrl: './app.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './app.scss'
 })
 export class App implements OnInit {

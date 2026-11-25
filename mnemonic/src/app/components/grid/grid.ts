@@ -1,4 +1,4 @@
-import {Component, inject} from "@angular/core";
+import {Component, inject, ChangeDetectionStrategy} from "@angular/core";
 import {GameService} from "../../services/game.service"; // Added Tile here
 import {TileComponent} from "../tile/tile";
 import {CommonModule} from "@angular/common";
@@ -16,6 +16,7 @@ import {CommonModule} from "@angular/common";
       }
     </div>
   `,
+  changeDetection: ChangeDetectionStrategy.Eager,
   styles: [`
     .grid-container {
       display: grid;
