@@ -51,6 +51,12 @@ Build the static production bundle (writes to `../docs` with `--base-href=./` as
 npm run build
 ```
 
+Run the live-browser E2E check against the built bundle (or pass `--url http://127.0.0.1:4200` against a running dev server):
+
+```bash
+npm run test:e2e
+```
+
 ## CI & deployment
 
-`.github/workflows/ci-deploy.yml` runs headless unit tests and verifies the production build on every push and pull request, and deploys the built bundle to GitHub Pages automatically on pushes to `main`.
+`.github/workflows/ci-deploy.yml` runs headless unit tests, verifies the production build, and runs `npm run test:e2e` on every push and pull request. It deploys the built bundle to GitHub Pages automatically on pushes to `main`.

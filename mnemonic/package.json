@@ -6,7 +6,8 @@
     "start": "ng serve -o",
     "build": "ng build --base-href=./",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "ng test",
+    "test:e2e": "node scripts/e2e-check.mjs"
   },
   "private": true,
   "dependencies": {
