@@ -1,15 +1,28 @@
 import { provideZonelessChangeDetection } from "@angular/core";
 import { TestBed } from "@angular/core/testing";
-import { GameService } from "./game.service";
+import { GameService, streakMultiplier } from "./game.service";
+import { SoundService } from "./sound.service";
+import { STATS_STORAGE_KEY, StatsService } from "./stats.service";
 
 describe("GameService", () => {
   let service: GameService;
+  let statsService: StatsService;
+  let soundService: SoundService;
 
   beforeEach(() => {
+    localStorage.removeItem(STATS_STORAGE_KEY);
+    localStorage.removeItem("mnemonic:muted");
     TestBed.configureTestingModule({
-      providers: [provideZonelessChangeDetection(), GameService],
+      providers: [provideZonelessChangeDetection(), GameService, StatsService, SoundService],
     });
     service = TestBed.inject(GameService);
+    statsService = TestBed.inject(StatsService);
+    soundService = TestBed.inject(SoundService);
+  });
+
+  afterEach(() => {
+    localStorage.removeItem(STATS_STORAGE_KEY);
+    localStorage.removeItem("mnemonic:muted");
   });
 
   it("should be created", () => {
@@ -65,14 +78,18 @@ describe("GameService", () => {
       expect(service.gameState()).toBe("sequence");
     });
 
-    it("should reset score, level, and selectedCount", () => {
+    it("should reset score, level, streak, and selectedCount", () => {
       service.score.set(100);
       service.currentLevel.set(5);
       service.selectedCount.set(2);
+      service.streak.set(3);
+      service.isUnrankedRetry.set(true);
       service.startGame();
       expect(service.score()).toBe(0);
       expect(service.currentLevel()).toBe(1);
       expect(service.selectedCount()).toBe(0);
+      expect(service.streak()).toBe(0);
+      expect(service.isUnrankedRetry()).toBe(false);
     });
 
     it("should generate a sequence of 3 tiles for the start of the game", () => {
@@ -98,7 +115,8 @@ describe("GameService", () => {
   });
 
   describe("Player Interaction and Round Win", () => {
-    it("should register player clicks and update selectedCount when in input state", () => {
+    it("should register player clicks, play step tone, and update selectedCount when in input state", () => {
+      const stepSpy = spyOn(soundService, "playStepTone");
       service.startGame();
       const firstTileId = service.getSequence()[0];
       service.gameState.set("input");
@@ -106,9 +124,11 @@ describe("GameService", () => {
       service.handlePlayerTileClick(firstTileId);
       expect(service.tiles().find(t => t.id === firstTileId)!.selectedByPlayer).toBe(true);
       expect(service.selectedCount()).toBe(1);
+      expect(stepSpy).toHaveBeenCalledWith(0, "input");
     });
 
     it("should enter round-cleared state on win and advance on advanceToNextRound()", () => {
+      const clearSpy = spyOn(soundService, "playRoundCleared");
       service.startGame(); // lvl 1, 3 tiles, score 0
       const currentSequence = service.getSequence();
       service.gameState.set("input");
@@ -119,9 +139,12 @@ describe("GameService", () => {
 
       // Immediately after win: score awarded, waiting in round-cleared beat
       expect(service.gameState()).toBe("round-cleared");
-      expect(service.score()).toBe(6); // 6 points for 3 in-order tiles (2 pts each)
+      expect(service.score()).toBe(6); // 6 points for 3 in-order tiles (2 pts each, 1x on streak 1)
+      expect(service.streak()).toBe(1);
+      expect(service.lastRoundMultiplier()).toBe(1);
       expect(service.correctlyClickedTilesInSequence()).toBe(3);
       expect(service.correctlyClickedTilesNotInSequence()).toBe(0);
+      expect(clearSpy).toHaveBeenCalledWith(1);
 
       // Advance after round-cleared transition
       service.advanceToNextRound();
@@ -131,7 +154,7 @@ describe("GameService", () => {
       expect(service.selectedCount()).toBe(0);
     });
 
-    it("should award 1 point per out-of-order tile and 2 points per in-order tile on a winning round", () => {
+    it("should award 1 point per out-of-order tile and reset streak on non-perfect win", () => {
       service.startGame(); // lvl 1, 3 tiles: [a, b, c]
       const [a, b, c] = service.getSequence();
       service.gameState.set("input");
@@ -145,10 +168,52 @@ describe("GameService", () => {
       expect(service.correctlyClickedTilesInSequence()).toBe(0);
       expect(service.correctlyClickedTilesNotInSequence()).toBe(3);
       expect(service.score()).toBe(3);
+      expect(service.streak()).toBe(0);
 
       service.advanceToNextRound();
       expect(service.gameState()).toBe("sequence");
       expect(service.currentLevel()).toBe(2);
+    });
+  });
+
+  describe("Streak and Multiplier", () => {
+    it("should compute escalating streak multiplier capped at 2x", () => {
+      expect(streakMultiplier(0)).toBe(1);
+      expect(streakMultiplier(1)).toBe(1);
+      expect(streakMultiplier(2)).toBe(1.25);
+      expect(streakMultiplier(3)).toBe(1.5);
+      expect(streakMultiplier(4)).toBe(1.75);
+      expect(streakMultiplier(5)).toBe(2);
+      expect(streakMultiplier(8)).toBe(2);
+    });
+
+    it("should apply escalating multiplier on consecutive 100% in-sequence rounds", () => {
+      service.startGame();
+
+      // Level 1: 3 tiles perfect -> streak 1 -> 1x -> 6 pts (total 6)
+      service.gameState.set("input");
+      service.getSequence().forEach(id => service.handlePlayerTileClick(id));
+      expect(service.streak()).toBe(1);
+      expect(service.lastRoundPoints()).toBe(6);
+      expect(service.score()).toBe(6);
+      service.advanceToNextRound();
+
+      // Level 2: 4 tiles perfect -> streak 2 -> 1.25x -> round(8 * 1.25) = 10 pts (total 16)
+      service.gameState.set("input");
+      service.getSequence().forEach(id => service.handlePlayerTileClick(id));
+      expect(service.streak()).toBe(2);
+      expect(service.lastRoundMultiplier()).toBe(1.25);
+      expect(service.lastRoundPoints()).toBe(10);
+      expect(service.score()).toBe(16);
+      service.advanceToNextRound();
+
+      // Level 3: 5 tiles perfect -> streak 3 -> 1.5x -> round(10 * 1.5) = 15 pts (total 31)
+      service.gameState.set("input");
+      service.getSequence().forEach(id => service.handlePlayerTileClick(id));
+      expect(service.streak()).toBe(3);
+      expect(service.lastRoundMultiplier()).toBe(1.5);
+      expect(service.lastRoundPoints()).toBe(15);
+      expect(service.score()).toBe(31);
     });
   });
 
@@ -171,8 +236,9 @@ describe("GameService", () => {
     });
   });
 
-  describe("Game Over", () => {
-    it("should set gameState to over and populate sequenceOrder on target tiles", () => {
+  describe("Game Over and Stats Persistence", () => {
+    it("should set gameState to over, play game-over chime, and populate sequenceOrder on target tiles", () => {
+      const overSpy = spyOn(soundService, "playGameOver");
       service.startGame();
       const currentSequence = service.getSequence(); // [a, b, c]
       service.gameState.set("input");
@@ -184,6 +250,7 @@ describe("GameService", () => {
       service.handlePlayerTileClick(wrongTile.id); // Wrong click; currentSequence[2] missed (order 3)
 
       expect(service.gameState()).toBe("over");
+      expect(overSpy).toHaveBeenCalled();
 
       const tile0 = service.tiles().find(t => t.id === currentSequence[0])!;
       const tile2 = service.tiles().find(t => t.id === currentSequence[2])!;
@@ -195,6 +262,49 @@ describe("GameService", () => {
       expect(tile2.sequenceOrder).toBe(3);
       expect(wrong.isIncorrectAndClicked).toBe(true);
       expect(wrong.sequenceOrder).toBeUndefined();
+    });
+
+    it("should record ranked run on Game Over and keep Retry Level continuations unranked", () => {
+      service.startGame();
+      // Clear Level 1 perfectly -> score 6, span 3, streak 1
+      service.gameState.set("input");
+      service.getSequence().forEach(id => service.handlePlayerTileClick(id));
+      service.advanceToNextRound();
+
+      // Fail Level 2
+      service.gameState.set("input");
+      const seq2 = service.getSequence();
+      const wrong2 = service.tiles().find(t => !seq2.includes(t.id))!;
+      service.handlePlayerTileClick(seq2[0]);
+      service.handlePlayerTileClick(seq2[1]);
+      service.handlePlayerTileClick(seq2[2]);
+      service.handlePlayerTileClick(wrong2.id);
+
+      expect(service.gameState()).toBe("over");
+      expect(service.lastRunWasNewBest()).toBe(true);
+      expect(statsService.gamesPlayed()).toBe(1);
+      expect(statsService.bestScore()).toBe(6);
+      expect(statsService.maxMemorySpan()).toBe(3);
+      expect(statsService.bestStreak()).toBe(1);
+
+      // Retry Level 2, win it, then fail Level 3 -> must NOT update StatsService
+      service.retryLastLevel();
+      expect(service.isUnrankedRetry()).toBe(true);
+      service.gameState.set("input");
+      service.getSequence().forEach(id => service.handlePlayerTileClick(id));
+      service.advanceToNextRound();
+
+      service.gameState.set("input");
+      const seq3 = service.getSequence();
+      const wrong3 = service.tiles().find(t => !seq3.includes(t.id))!;
+      seq3.slice(0, seq3.length - 1).forEach(id => service.handlePlayerTileClick(id));
+      service.handlePlayerTileClick(wrong3.id);
+
+      expect(service.gameState()).toBe("over");
+      expect(service.lastRunWasNewBest()).toBe(false);
+      expect(statsService.gamesPlayed()).toBe(1);
+      expect(statsService.bestScore()).toBe(6);
+      expect(statsService.maxMemorySpan()).toBe(3);
     });
 
     it("should not award points or inflate tile counters on a failed round or across retryLastLevel()", () => {

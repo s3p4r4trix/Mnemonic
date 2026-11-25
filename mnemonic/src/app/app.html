@@ -4,6 +4,25 @@
     <div class="header-actions">
       <button
         mat-icon-button
+        id="stats-button"
+        type="button"
+        aria-label="View memory stats"
+        title="View memory stats"
+        (click)="openStats()">
+        <mat-icon aria-hidden="true">bar_chart</mat-icon>
+      </button>
+      <button
+        mat-icon-button
+        id="mute-toggle-button"
+        type="button"
+        [attr.aria-label]="muteAriaLabel"
+        [attr.title]="muteAriaLabel"
+        [attr.aria-pressed]="soundService.muted()"
+        (click)="toggleMute()">
+        <mat-icon aria-hidden="true">{{ muteIcon }}</mat-icon>
+      </button>
+      <button
+        mat-icon-button
         id="theme-toggle-button"
         type="button"
         [attr.aria-label]="themeAriaLabel"

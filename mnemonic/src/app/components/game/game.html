@@ -9,10 +9,30 @@
       <span class="stat-value">{{ gameService.score() }}</span>
     </div>
     <div class="stat-item">
+      <span class="stat-label">Best</span>
+      <span class="stat-value">{{ statsService.bestScore() }}</span>
+    </div>
+    <div class="stat-item">
       <span class="stat-label">Tiles</span>
       <span class="stat-value">{{ gameService.selectedCount() }} / {{ gameService.numTilesToLight() }}</span>
     </div>
   </div>
+
+  @if (gameService.streak() > 0 || gameService.isUnrankedRetry()) {
+    <div class="badges-row" aria-label="Active run badges">
+      @if (gameService.streak() > 0) {
+        <span class="streak-badge" [class.has-multiplier]="gameService.currentMultiplier() > 1">
+          Streak {{ gameService.streak() }}
+          @if (gameService.currentMultiplier() > 1) {
+            <span>&middot; {{ gameService.currentMultiplier() }}x</span>
+          }
+        </span>
+      }
+      @if (gameService.isUnrankedRetry()) {
+        <span class="unranked-badge">Unranked Retry</span>
+      }
+    </div>
+  }
 
   @if (gameService.gameState() === 'idle' || gameService.gameState() === 'over') {
     <button matButton="elevated" (click)="startGame()">
@@ -33,6 +53,14 @@
       <span>Checking...</span>
     } @else if (gameService.gameState() === 'round-cleared') {
       <span class="round-cleared-banner">Round Cleared!</span>
+      @if (gameService.lastRoundPoints() > 0) {
+        <span class="round-bonus-detail">
+          +{{ gameService.lastRoundPoints() }} pts
+          @if (gameService.lastRoundMultiplier() > 1) {
+            <span>({{ gameService.lastRoundMultiplier() }}x streak)</span>
+          }
+        </span>
+      }
     }
   </div>
 </div>
