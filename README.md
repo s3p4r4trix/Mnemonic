@@ -4,24 +4,27 @@ Mnemonic is an Angular 22 sequence memory game. The board flashes a sequence of 
 
 ## Game rules
 
-Each round plays the target sequence in two steps:
+Each round plays the target sequence using the active mode and speed preset, then prompts you to repeat it:
 
-1. Each tile in the sequence lights up for 700 ms, with a 300 ms pause between tiles.
-2. All tiles in the sequence light up together for 1000 ms.
+1. In sequential modes, each tile lights up one by one, followed by all target tiles lighting up together. In Spatial Flash, all target tiles light up together without the one-by-one step.
+2. In `Normal` speed, each tile lights up for 700 ms with a 300 ms pause between tiles, and all tiles light up together for 1000 ms. `Relaxed` (950 ms, 400 ms, 1300 ms) and `Speed` (450 ms, 180 ms, 650 ms) adjust those durations, and **Speed up each level** tightens playback as levels rise.
 
 After playback finishes, select the tiles that lit up:
 
-- **Starting state.** Level 1 starts on a 3x3 grid with 3 tiles in the sequence.
-- **Scoring.** Clicking a tile in its exact sequence position awards 2 points. Clicking a sequence tile out of order awards 1 point. Points only count when you complete the round without picking a wrong tile.
+- **Game modes.** **Classic** awards 2 points per in-order tile and 1 point per out-of-order tile. **Reverse Recall** scores the sequence in reverse order. **Strict Order** requires exact order and ends the run on the first wrong tap. **Spatial Flash** scores 1 point per target tile in any order.
+- **Starting state and streaks.** Level 1 starts on a 3x3 grid with 3 tiles in the sequence. Consecutive cleared rounds build a streak multiplier up to `2x`.
 - **Level progression.** Clearing a round increases the level by 1 and adds 1 tile to the sequence. When the sequence length exceeds half of the tiles on the grid, the grid size increases by 1.
-- **Game over.** Picking any tile outside the sequence ends the round once your selection count reaches the sequence length. You can start a new game at level 1 or retry the failed level with a new sequence.
+- **Game over.** Picking a tile outside the sequence ends the round once your selection count reaches the sequence length (or immediately in Strict Order). You can start a new game at level 1 or retry the failed level unranked with a new sequence.
 
 ## Repository layout
 
-- `mnemonic/` contains the Angular application, unit tests, and live-browser E2E script. See [mnemonic/README.md](mnemonic/README.md) for component and service details.
+- `mnemonic/` holds the Angular application, unit tests, and live-browser E2E script.
+  - `src/app/services/` holds `GameService` (signals and round state), `SoundService` (Web Audio pentatonic tones), and `StatsService` (`localStorage` history per mode).
+  - `src/app/models/` defines `GameMode`, `SpeedPreset`, `Tile`, and stats types.
+  - `src/app/components/` holds `GameComponent`, `GridComponent`, `TileComponent`, `GameOverDialogComponent`, and `StatsDialogComponent`.
 - `docs/` holds the compiled static production bundle served by GitHub Pages.
 - `.github/workflows/ci-deploy.yml` defines the CI and GitHub Pages deployment workflow.
-- [ROADMAP.md](ROADMAP.md) lists planned work for Phases 2 through 4.
+- [ROADMAP.md](ROADMAP.md) lists planned work.
 - [LICENSE](LICENSE) contains the GNU General Public License v3.0.
 
 ## Local development
@@ -51,7 +54,7 @@ Build the production bundle into `docs/`:
 npm run build
 ```
 
-Run the live-browser E2E check against the built bundle:
+Run the live-browser E2E check against the built bundle (or pass `--url http://127.0.0.1:4200` against a running dev server):
 
 ```bash
 npm run test:e2e
