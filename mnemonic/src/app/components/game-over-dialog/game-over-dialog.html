@@ -1,9 +1,45 @@
-<h1 mat-dialog-title class="game-over-title">Game Over!</h1>
+<h1 mat-dialog-title class="game-over-title">
+  @if (gameService.isDailyChallenge()) {
+    {{ gameService.isUnrankedRetry() ? 'Daily Replay Complete' : 'Daily Challenge Complete' }}
+  } @else {
+    Game Over!
+  }
+</h1>
 <div mat-dialog-content class="game-over">
-  @if (gameService.lastRunWasNewBest()) {
-    <div class="new-best-pill">New Personal Best!</div>
-  } @else if (gameService.isUnrankedRetry()) {
-    <div class="unranked-note">Unranked retry (not saved to stats)</div>
+  @if (gameService.isDailyChallenge()) {
+    @if (officialDailyStreak() > 0) {
+      <div class="daily-streak-pill">Daily Streak: {{ officialDailyStreak() }}d</div>
+    }
+    @if (gameService.isUnrankedRetry()) {
+      @if (officialDailyResult(); as official) {
+        <div class="unranked-note">
+          Unranked daily replay (official result: {{ official.score }} pts, Lvl {{ official.level }})
+        </div>
+      } @else {
+        <div class="unranked-note">Unranked daily replay</div>
+      }
+    }
+    @if (roundStrip()) {
+      <div class="round-strip" role="img" [attr.aria-label]="roundStripAriaLabel()">{{ roundStrip() }}</div>
+    }
+    <div class="copy-status-region" aria-live="polite">
+      @if (copyState() === 'error') {
+        <p class="copy-error-note">Clipboard unavailable. Select and copy below.</p>
+        @if (shareText(); as text) {
+          <textarea
+            class="share-fallback"
+            readonly
+            rows="3"
+            aria-label="Shareable daily result">{{ text }}</textarea>
+        }
+      }
+    </div>
+  } @else {
+    @if (gameService.lastRunWasNewBest()) {
+      <div class="new-best-pill">New Personal Best!</div>
+    } @else if (gameService.isUnrankedRetry()) {
+      <div class="unranked-note">Unranked retry (not saved to stats)</div>
+    }
   }
   <div class="stats-container">
     <p>Level: {{ gameService.currentLevel() }}</p>
@@ -18,6 +54,18 @@
 </div>
 <div mat-dialog-actions align="end" class="dialog-actions">
   <button matButton (click)="onClose()">Close</button>
-  <button matButton="tonal" (click)="onRetryLevel()" class="retry-button">Retry Level</button>
-  <button matButton="filled" (click)="onPlayAgain()">Play Again</button>
+  @if (gameService.isDailyChallenge()) {
+    <button
+      matButton="tonal"
+      id="copy-daily-result-button"
+      type="button"
+      [disabled]="!officialDailyResult()"
+      (click)="onCopyDailyResult()">
+      {{ copyState() === 'copied' ? 'Copied!' : (gameService.isUnrankedRetry() ? 'Copy Official Result' : 'Copy Result') }}
+    </button>
+    <button matButton="filled" type="button" (click)="onReplayDaily()">Replay Daily</button>
+  } @else {
+    <button matButton="tonal" (click)="onRetryLevel()" class="retry-button">Retry Level</button>
+    <button matButton="filled" (click)="onPlayAgain()">Play Again</button>
+  }
 </div>

@@ -10,7 +10,7 @@
  *   node scripts/e2e-check.mjs --screenshots-dir ./tmp-shots
  */
 import assert from 'node:assert/strict';
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { extname, join, resolve } from 'node:path';
@@ -41,13 +41,18 @@ function parseArgs(argv) {
 }
 
 function findChromeBinary() {
+  if (process.env.CHROME_BIN) return process.env.CHROME_BIN;
   const candidates = [
-    process.env.CHROME_BIN,
     'google-chrome',
     'google-chrome-stable',
     'chromium',
     'chromium-browser',
-  ].filter(Boolean);
+  ];
+  for (const bin of candidates) {
+    if (spawnSync('which', [bin], { stdio: 'ignore' }).status === 0) {
+      return bin;
+    }
+  }
   return candidates[0];
 }
 
@@ -390,6 +395,142 @@ async function main() {
     assert.equal(statsAfterReset.stored, null);
     assert.match(statsAfterReset.dialogText, /No ranked runs recorded yet/i);
 
+    await cdp.eval(
+      `[...document.querySelectorAll('app-stats-dialog button')].find(b => b.textContent.trim() === 'Close')?.click()`
+    );
+    await sleep(250);
+
+    // 8. Daily Challenge: deterministic sequence, stats isolation, Game Over actions, unranked replay, and Stats heatmap
+    await cdp.eval(`
+      window.__recordedSeq = [];
+      if (window.__dailyObs) window.__dailyObs.disconnect();
+      window.__dailyObs = new MutationObserver(() => {
+        const lit = [...document.querySelectorAll('button.tile.lit')].map(b => Number(b.dataset.tileId));
+        if (lit.length === 1 && window.__recordedSeq[window.__recordedSeq.length - 1] !== lit[0]) {
+          window.__recordedSeq.push(lit[0]);
+        }
+      });
+      window.__dailyObs.observe(document.body, { subtree: true, attributes: true, attributeFilter: ['class'] });
+      document.querySelector('#daily-challenge-button')?.click();
+    `);
+
+    await waitForMessage(cdp, 'Your turn');
+    const dailySeq1 = await cdp.eval(`window.__recordedSeq`);
+    assert.equal(dailySeq1.length, 3, `Expected 3 flashed tiles in Daily Lvl 1, got ${JSON.stringify(dailySeq1)}`);
+
+    await cdp.eval(`document.querySelector('button[data-tile-id="${dailySeq1[0]}"]')?.click()`);
+    await cdp.eval(`document.querySelector('button[data-tile-id="${dailySeq1[1]}"]')?.click()`);
+    await cdp.eval(`document.querySelector('button[data-tile-id="${dailySeq1[2]}"]')?.click()`);
+
+    await waitForMessage(cdp, 'Round Cleared!');
+    await cdp.eval(`window.__recordedSeq = [];`);
+    await waitForMessage(cdp, 'Your turn');
+    const dailySeq2 = await cdp.eval(`window.__recordedSeq`);
+    assert.equal(dailySeq2.length, 4, `Expected 4 flashed tiles in Daily Lvl 2, got ${JSON.stringify(dailySeq2)}`);
+
+    const dailyWrong2 = await cdp.eval(`
+      [...document.querySelectorAll('button[data-tile-id]')]
+        .map(b => Number(b.dataset.tileId))
+        .find(id => !${JSON.stringify(dailySeq2)}.includes(id))
+    `);
+    await cdp.eval(`document.querySelector('button[data-tile-id="${dailySeq2[0]}"]')?.click()`);
+    await cdp.eval(`document.querySelector('button[data-tile-id="${dailySeq2[1]}"]')?.click()`);
+    await cdp.eval(`document.querySelector('button[data-tile-id="${dailySeq2[2]}"]')?.click()`);
+    await cdp.eval(`document.querySelector('button[data-tile-id="${dailyWrong2}"]')?.click()`);
+    await sleep(250);
+
+    const dailyOverDialog = await cdp.eval(`({
+      title: document.querySelector('app-game-over-dialog .game-over-title')?.textContent?.trim() || '',
+      hasCopy: Boolean(document.querySelector('app-game-over-dialog #copy-daily-result-button')),
+      buttons: [...document.querySelectorAll('app-game-over-dialog button')].map(b => b.textContent.trim()),
+    })`);
+    assert.equal(dailyOverDialog.title, 'Daily Challenge Complete');
+    assert.equal(dailyOverDialog.hasCopy, true);
+    assert.ok(dailyOverDialog.buttons.includes('Replay Daily'));
+    assert.ok(!dailyOverDialog.buttons.includes('Retry Level'));
+
+    await cdp.eval(
+      `[...document.querySelectorAll('app-game-over-dialog button')].find(b => b.textContent.trim() === 'Close')?.click()`
+    );
+    await sleep(250);
+
+    const afterDailyClose = await cdp.eval(`({
+      dailyRaw: localStorage.getItem('mnemonic:daily:v1'),
+      classicGames: JSON.parse(localStorage.getItem('mnemonic:stats:v2') || '{}')?.byMode?.classic?.gamesPlayed ?? 0,
+      mainButtons: [...document.querySelectorAll('app-game button')].map(b => b.textContent.trim()),
+      dailyBtnText: document.querySelector('#daily-challenge-button')?.textContent?.trim() || '',
+    })`);
+    assert.notEqual(afterDailyClose.dailyRaw, null, 'Daily run should persist in localStorage');
+    assert.equal(afterDailyClose.classicGames, 0, 'Daily run must not count toward Classic stats');
+    assert.ok(!afterDailyClose.mainButtons.includes('Retry Level'));
+    assert.match(afterDailyClose.dailyBtnText, /Daily Done \(6\)/);
+
+    // Unranked replay: must reproduce exact same Level 1 sequence and show Unranked Replay badge
+    await cdp.eval(`
+      window.__recordedSeq = [];
+      document.querySelector('#daily-challenge-button')?.click();
+    `);
+    await waitForMessage(cdp, 'Your turn');
+    const replaySeq1 = await cdp.eval(`window.__recordedSeq`);
+    assert.deepEqual(replaySeq1, dailySeq1, 'Daily Challenge replay must reproduce identical sequence');
+    const unrankedBadge = await cdp.eval(`document.querySelector('.unranked-badge')?.textContent?.trim() || ''`);
+    assert.equal(unrankedBadge, 'Unranked Replay');
+
+    // Fail Level 1 during unranked replay; score must remain locked at 6
+    const replayWrong1 = await cdp.eval(`
+      [...document.querySelectorAll('button[data-tile-id]')]
+        .map(b => Number(b.dataset.tileId))
+        .find(id => !${JSON.stringify(replaySeq1)}.includes(id))
+    `);
+    await cdp.eval(`document.querySelector('button[data-tile-id="${replaySeq1[0]}"]')?.click()`);
+    await cdp.eval(`document.querySelector('button[data-tile-id="${replaySeq1[1]}"]')?.click()`);
+    await cdp.eval(`document.querySelector('button[data-tile-id="${replayWrong1}"]')?.click()`);
+    await sleep(250);
+
+    const replayDialogBeforeCopy = await cdp.eval(`({
+      title: document.querySelector('app-game-over-dialog .game-over-title')?.textContent?.trim() || '',
+      copyLabel: document.querySelector('app-game-over-dialog #copy-daily-result-button')?.textContent?.trim() || '',
+      note: document.querySelector('app-game-over-dialog .unranked-note')?.textContent?.trim() || '',
+    })`);
+    assert.equal(replayDialogBeforeCopy.title, 'Daily Replay Complete');
+    assert.equal(replayDialogBeforeCopy.copyLabel, 'Copy Official Result');
+    assert.match(replayDialogBeforeCopy.note, /official result: 6 pts/i);
+
+    await cdp.eval(`document.querySelector('app-game-over-dialog #copy-daily-result-button')?.click()`);
+    await sleep(150);
+
+    await cdp.eval(
+      `[...document.querySelectorAll('app-game-over-dialog button')].find(b => b.textContent.trim() === 'Replay Daily')?.click()`
+    );
+    await waitForMessage(cdp, 'Memorize');
+
+    const lockedCheck = await cdp.eval(`(() => {
+      const store = JSON.parse(localStorage.getItem('mnemonic:daily:v1') || '{}');
+      const entries = Object.values(store.history || {});
+      return {
+        count: entries.length,
+        score: entries[0]?.score ?? null,
+      };
+    })()`);
+    assert.deepEqual(lockedCheck, { count: 1, score: 6 });
+
+    // Verify Daily tab in Stats dialog shows Current Streak 1d and 84 heatmap cells without horizontal overflow
+    await cdp.eval(`document.querySelector('#stats-button')?.click()`);
+    await sleep(250);
+    await cdp.eval(`document.querySelector('#stats-tab-daily')?.click()`);
+    await sleep(150);
+    const dailyStatsView = await cdp.eval(`({
+      text: document.querySelector('app-stats-dialog')?.innerText?.replace(/\\s+/g, ' ').trim() || '',
+      hasListRole: Boolean(document.querySelector('app-stats-dialog .heatmap-grid[role="list"]')),
+      heatmapCount: document.querySelectorAll('app-stats-dialog .heatmap-cell[role="listitem"]').length,
+      docOverflow: document.documentElement.scrollWidth > window.innerWidth,
+    })`);
+    assert.match(dailyStatsView.text, /CURRENT STREAK 1D/i);
+    assert.equal(dailyStatsView.hasListRole, true);
+    assert.equal(dailyStatsView.heatmapCount, 84);
+    assert.equal(dailyStatsView.docOverflow, false);
+    await cdp.screenshot(screenshotsDir, '6_daily_stats.png');
+
     assert.deepEqual(cdp.consoleErrors, [], `Unexpected console errors: ${cdp.consoleErrors.join('; ')}`);
 
     console.log(
@@ -409,6 +550,8 @@ async function main() {
             hudAfterReload,
             newBestText: gameOverState.newBestText,
             statsDialogReset: true,
+            dailyDeterministic: true,
+            dailyHeatmapCells: dailyStatsView.heatmapCount,
             review,
             consoleErrors: 0,
           },

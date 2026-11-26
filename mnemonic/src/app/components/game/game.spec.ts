@@ -1,21 +1,29 @@
 import { provideZonelessChangeDetection } from "@angular/core";
 import { ComponentFixture, TestBed } from "@angular/core/testing";
+import { MatDialog } from "@angular/material/dialog";
 import { GameComponent } from "./game";
+import {
+  DAILY_STORAGE_KEY_V1,
+  DailyChallengeService,
+} from "../../services/daily-challenge.service";
 import {
   GameService,
   PROGRESSIVE_SPEED_STORAGE_KEY,
   SPEED_PRESET_STORAGE_KEY,
 } from "../../services/game.service";
 import { SoundService } from "../../services/sound.service";
-import { STATS_STORAGE_KEY } from "../../services/stats.service";
+import { STATS_STORAGE_KEY, STATS_STORAGE_KEY_V2 } from "../../services/stats.service";
 
 describe("GameComponent", () => {
   let fixture: ComponentFixture<GameComponent>;
   let gameService: GameService;
   let soundService: SoundService;
+  let dailyService: DailyChallengeService;
 
   beforeEach(async () => {
     localStorage.removeItem(STATS_STORAGE_KEY);
+    localStorage.removeItem(STATS_STORAGE_KEY_V2);
+    localStorage.removeItem(DAILY_STORAGE_KEY_V1);
     localStorage.removeItem("mnemonic:muted");
     localStorage.removeItem(SPEED_PRESET_STORAGE_KEY);
     localStorage.removeItem(PROGRESSIVE_SPEED_STORAGE_KEY);
@@ -27,14 +35,18 @@ describe("GameComponent", () => {
 
     gameService = TestBed.inject(GameService);
     soundService = TestBed.inject(SoundService);
+    dailyService = TestBed.inject(DailyChallengeService);
     fixture = TestBed.createComponent(GameComponent);
     fixture.detectChanges();
   });
 
   afterEach(() => {
+    TestBed.inject(MatDialog).closeAll();
     fixture.destroy();
     jasmine.clock().uninstall();
     localStorage.removeItem(STATS_STORAGE_KEY);
+    localStorage.removeItem(STATS_STORAGE_KEY_V2);
+    localStorage.removeItem(DAILY_STORAGE_KEY_V1);
     localStorage.removeItem("mnemonic:muted");
     localStorage.removeItem(SPEED_PRESET_STORAGE_KEY);
     localStorage.removeItem(PROGRESSIVE_SPEED_STORAGE_KEY);
@@ -154,5 +166,31 @@ describe("GameComponent", () => {
     await Promise.resolve();
 
     expect(gameService.gameState()).toBe("input");
+  });
+
+  it("should start Daily Challenge from button, show Daily badge, and hide Retry Level on Daily Game Over", () => {
+    const host = fixture.nativeElement as HTMLElement;
+    const dailyBtn = host.querySelector("#daily-challenge-button") as HTMLButtonElement | null;
+    expect(dailyBtn?.textContent?.trim()).toBe("Daily Challenge");
+
+    dailyBtn?.click();
+    fixture.detectChanges();
+
+    expect(gameService.isDailyChallenge()).toBeTrue();
+    expect(gameService.gameState()).toBe("sequence");
+    expect(host.querySelector(".daily-badge")?.textContent?.trim()).toContain("Daily");
+
+    const seq = [...gameService.getSequence()];
+    const wrong = gameService.tiles().find(t => !seq.includes(t.id))!;
+    gameService.gameState.set("input");
+    seq.slice(0, seq.length - 1).forEach(id => gameService.handlePlayerTileClick(id));
+    gameService.handlePlayerTileClick(wrong.id);
+    fixture.detectChanges();
+
+    expect(gameService.gameState()).toBe("over");
+    expect(dailyService.hasCompletedToday()).toBeTrue();
+    const buttonTexts = Array.from(host.querySelectorAll("button")).map(b => b.textContent?.trim());
+    expect(buttonTexts).not.toContain("Retry Level");
+    expect(host.querySelector("#daily-challenge-button")?.textContent?.trim()).toContain("Daily Done (0)");
   });
 });

@@ -1,10 +1,9 @@
 # Mnemonic Trainer Roadmap
 
-Planned improvements ordered by priority. Completed Phase 1 work (responsive grid, compact header, cancellable playback, HUD progress, round-cleared transition, Game Over review overlays, keyboard navigation, `OnPush`, live-browser E2E checks, and GitHub Actions CI/Pages), Phase 2 work (Web Audio pentatonic tones and mute toggle, `localStorage` stats and stats dialog, and consecutive in-sequence streak multiplier), and early Phase 3 work (mode selector for Classic, Reverse Recall, Strict Order, Spatial Flash, per-mode stats, and Relaxed/Normal/Speed presets with optional progressive speed-up) have been removed.
+Planned improvements ordered by priority. Completed Phase 1 work (responsive grid, compact header, cancellable playback, HUD progress, round-cleared transition, Game Over review overlays, keyboard navigation, `OnPush`, live-browser E2E checks, and GitHub Actions CI/Pages), Phase 2 work (Web Audio pentatonic tones and mute toggle, `localStorage` stats and stats dialog, and consecutive in-sequence streak multiplier), and completed Phase 3 work (mode selector for Classic, Reverse Recall, Strict Order, Spatial Flash, per-mode stats, Relaxed/Normal/Speed presets with optional progressive speed-up, and date-seeded Daily Challenge with streak tracking, shareable summary cards, and a 12-week Stats heatmap) have been removed.
 
 ## Phase 3: Game Modes and Replayability (Next)
 
-- **Daily Challenge and streak tracking.** Date-seeded PRNG (`YYYY-MM-DD`) so every player gets the same sequence progression, paired with a shareable text summary card, consecutive-day streak, and calendar heatmap in the Stats dialog.
 - **Practice sandbox and optional lifelines.** Fixed grid size and sequence length practice mode, plus an optional 3-lives or one-time replay-sequence lifeline.
 
 ## Phase 4: Cognitive Training Depth

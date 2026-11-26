@@ -9,7 +9,7 @@
 
 .stats-mode-tabs {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 4px;
   padding: 4px;
   margin-bottom: 12px;
@@ -25,6 +25,9 @@
   font-size: 0.8rem;
   font-weight: 500;
   cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   background-color: transparent;
   color: var(--md-sys-color-on-surface-variant);
 
@@ -45,6 +48,108 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
   margin-bottom: 12px;
+}
+
+.daily-metrics-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.daily-today-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background-color: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
+}
+
+.daily-today-summary {
+  font-size: 0.84rem;
+  font-weight: 500;
+}
+
+.copy-error-note {
+  margin: -6px 0 6px;
+  font-size: 0.78rem;
+  color: var(--md-sys-color-error);
+}
+
+.copy-status-region {
+  width: 100%;
+}
+
+.share-fallback {
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 12px;
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid var(--md-sys-color-outline-variant);
+  background-color: var(--md-sys-color-surface-container);
+  color: var(--md-sys-color-on-surface);
+  font-family: monospace;
+  font-size: 0.78rem;
+  resize: none;
+}
+
+.heatmap-section {
+  margin-bottom: 12px;
+}
+
+.heatmap-grid {
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-rows: repeat(7, 1fr);
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 3px;
+  padding: 8px;
+  border-radius: 10px;
+  background-color: var(--md-sys-color-surface-container, rgba(0, 0, 0, 0.04));
+}
+
+.heatmap-cell {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 3px;
+
+  &.level-0 {
+    background-color: var(--md-sys-color-surface-container-highest, rgba(128, 128, 128, 0.16));
+  }
+
+  &.level-1 {
+    background-color: color-mix(in srgb, var(--md-sys-color-primary) 48%, var(--md-sys-color-surface-container-highest));
+  }
+
+  &.level-2 {
+    background-color: color-mix(in srgb, var(--md-sys-color-primary) 68%, var(--md-sys-color-surface-container-highest));
+  }
+
+  &.level-3 {
+    background-color: color-mix(in srgb, var(--md-sys-color-primary) 84%, var(--md-sys-color-surface-container-highest));
+  }
+
+  &.level-4 {
+    background-color: var(--md-sys-color-primary);
+  }
+
+  &.is-failed {
+    background-color: color-mix(in srgb, var(--md-sys-color-error) 28%, var(--md-sys-color-surface-container-highest));
+    border: 1px dashed var(--md-sys-color-error);
+    box-sizing: border-box;
+  }
+
+  &.is-today {
+    outline: 1.5px solid var(--md-sys-color-on-surface);
+    outline-offset: -1px;
+  }
+}
+
+.daily-strip-cell {
+  letter-spacing: 0.06em;
 }
 
 .metric-card {

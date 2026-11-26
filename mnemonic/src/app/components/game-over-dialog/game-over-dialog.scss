@@ -22,8 +22,7 @@
 
 .game-over {
   width: 100%;
-  height: 100%;
-  overflow: hidden;
+  overflow: auto;
 }
 
 .final-score-label {
@@ -54,15 +53,46 @@
   color: var(--md-sys-color-on-surface-variant);
 }
 
-.new-best-pill {
+.new-best-pill,
+.daily-streak-pill {
   display: inline-block;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
   padding: 4px 14px;
   border-radius: 999px;
   font-size: 0.85rem;
   font-weight: 600;
   background-color: var(--md-sys-color-tertiary-container);
   color: var(--md-sys-color-on-tertiary-container);
+}
+
+.round-strip {
+  margin-bottom: 10px;
+  font-size: 1.2rem;
+  letter-spacing: 0.12em;
+}
+
+.copy-error-note {
+  margin: 0 0 6px;
+  font-size: 0.8rem;
+  color: var(--md-sys-color-error);
+}
+
+.copy-status-region {
+  width: 100%;
+}
+
+.share-fallback {
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 10px;
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid var(--md-sys-color-outline-variant);
+  background-color: var(--md-sys-color-surface-container);
+  color: var(--md-sys-color-on-surface);
+  font-family: monospace;
+  font-size: 0.78rem;
+  resize: none;
 }
 
 .unranked-note {

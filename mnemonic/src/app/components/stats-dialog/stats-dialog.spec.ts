@@ -1,6 +1,7 @@
 import { provideZonelessChangeDetection } from "@angular/core";
 import { ComponentFixture, TestBed } from "@angular/core/testing";
 import { MatDialogRef } from "@angular/material/dialog";
+import { DAILY_STORAGE_KEY_V1, DailyChallengeService } from "../../services/daily-challenge.service";
 import { STATS_STORAGE_KEY, STATS_STORAGE_KEY_V2, StatsService } from "../../services/stats.service";
 import { StatsDialogComponent } from "./stats-dialog";
 
@@ -8,11 +9,15 @@ describe("StatsDialogComponent", () => {
   let fixture: ComponentFixture<StatsDialogComponent>;
   let component: StatsDialogComponent;
   let statsService: StatsService;
+  let dailyService: DailyChallengeService;
   let dialogRefSpy: jasmine.SpyObj<MatDialogRef<StatsDialogComponent>>;
+  let originalClipboardDescriptor: PropertyDescriptor | undefined;
 
   beforeEach(async () => {
+    originalClipboardDescriptor = Object.getOwnPropertyDescriptor(navigator, "clipboard");
     localStorage.removeItem(STATS_STORAGE_KEY);
     localStorage.removeItem(STATS_STORAGE_KEY_V2);
+    localStorage.removeItem(DAILY_STORAGE_KEY_V1);
     dialogRefSpy = jasmine.createSpyObj("MatDialogRef", ["close"]);
 
     await TestBed.configureTestingModule({
@@ -20,19 +25,27 @@ describe("StatsDialogComponent", () => {
       providers: [
         provideZonelessChangeDetection(),
         StatsService,
+        DailyChallengeService,
         { provide: MatDialogRef, useValue: dialogRefSpy },
       ],
     }).compileComponents();
 
     statsService = TestBed.inject(StatsService);
+    dailyService = TestBed.inject(DailyChallengeService);
     fixture = TestBed.createComponent(StatsDialogComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });
 
   afterEach(() => {
+    if (originalClipboardDescriptor) {
+      Object.defineProperty(navigator, "clipboard", originalClipboardDescriptor);
+    } else {
+      delete (navigator as unknown as Record<string, unknown>)["clipboard"];
+    }
     localStorage.removeItem(STATS_STORAGE_KEY);
     localStorage.removeItem(STATS_STORAGE_KEY_V2);
+    localStorage.removeItem(DAILY_STORAGE_KEY_V1);
   });
 
   it("should render empty state when no runs have been recorded", () => {
@@ -78,8 +91,79 @@ describe("StatsDialogComponent", () => {
 
     expect((fixture.nativeElement as HTMLElement).textContent).toContain("12");
 
-    component.selectMode("reverse");
+    component.selectTab("reverse");
     fixture.detectChanges();
     expect((fixture.nativeElement as HTMLElement).textContent).toContain("33");
+  });
+
+  it("should render Daily tab with 84 heatmap cells, streak stats, and isolated Daily reset", () => {
+    statsService.recordRun(
+      { score: 12, level: 2, maxSpan: 3, bestStreak: 1, inSequenceTiles: 6, outOfSequenceTiles: 0 },
+      "classic"
+    );
+    const today = dailyService.todayKey();
+    dailyService.recordRun({
+      date: today,
+      score: 48,
+      level: 4,
+      maxSpan: 5,
+      bestStreak: 3,
+      inSequenceTiles: 14,
+      outOfSequenceTiles: 0,
+      roundOutcomes: ["perfect", "perfect", "perfect", "fail"],
+    });
+
+    component.selectTab("daily");
+    fixture.detectChanges();
+
+    const host = fixture.nativeElement as HTMLElement;
+    const text = host.textContent ?? "";
+    expect(text).toContain("1d");
+    expect(text).toContain("48");
+    expect(host.querySelector('.heatmap-grid[role="list"]')).not.toBeNull();
+    expect(host.querySelectorAll('.heatmap-cell[role="listitem"]').length).toBe(84);
+    expect(host.querySelectorAll(".heatmap-cell.is-today").length).toBe(1);
+
+    component.requestReset();
+    fixture.detectChanges();
+    component.confirmReset();
+    fixture.detectChanges();
+
+    expect(dailyService.hasRecordedRuns()).toBeFalse();
+    expect(statsService.statsForMode("classic")().gamesPlayed).toBe(1);
+  });
+
+  it("should label failed Level 1 heatmap cell and show selectable fallback on copyTodayResult error", async () => {
+    const today = dailyService.todayKey();
+    dailyService.recordRun({
+      date: today,
+      score: 0,
+      level: 1,
+      maxSpan: 0,
+      bestStreak: 0,
+      inSequenceTiles: 0,
+      outOfSequenceTiles: 0,
+      roundOutcomes: ["fail"],
+    });
+
+    component.selectTab("daily");
+    fixture.detectChanges();
+
+    const host = fixture.nativeElement as HTMLElement;
+    const failedCell = host.querySelector(".heatmap-cell.is-failed") as HTMLElement | null;
+    expect(failedCell).not.toBeNull();
+    expect(failedCell?.getAttribute("aria-label")).toContain("(Not cleared)");
+
+    Object.defineProperty(navigator, "clipboard", {
+      value: undefined,
+      configurable: true,
+    });
+    await component.copyTodayResult();
+    fixture.detectChanges();
+
+    expect(component.copyState()).toBe("error");
+    const fallback = host.querySelector("textarea.share-fallback") as HTMLTextAreaElement | null;
+    expect(fallback).not.toBeNull();
+    expect(fallback?.value).toContain(`Mnemonic Daily ${today}`);
   });
 });
