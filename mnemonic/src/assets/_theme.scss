@@ -136,107 +136,65 @@ $_rest: (
 $primary-palette: map.merge(map.get($my_palettes, primary), $_rest);
 $tertiary-palette: map.merge(map.get($my_palettes, tertiary), $_rest);
 
-.dark {
-  --md-sys-color-primary: rgb(196 192 255);
-  --md-sys-color-surface-tint: rgb(196 192 255);
-  --md-sys-color-on-primary: rgb(44 41 96);
-  --md-sys-color-primary-container: rgb(67 64 120);
-  --md-sys-color-on-primary-container: rgb(227 223 255);
-  --md-sys-color-secondary: rgb(199 196 221);
-  --md-sys-color-on-secondary: rgb(47 46 66);
-  --md-sys-color-secondary-container: rgb(70 69 89);
-  --md-sys-color-on-secondary-container: rgb(227 224 249);
-  --md-sys-color-tertiary: rgb(234 185 209);
-  --md-sys-color-on-tertiary: rgb(71 38 57);
-  --md-sys-color-tertiary-container: rgb(96 59 79);
-  --md-sys-color-on-tertiary-container: rgb(255 216 234);
-  --md-sys-color-error: rgb(255 180 171);
-  --md-sys-color-on-error: rgb(105 0 5);
-  --md-sys-color-error-container: rgb(147 0 10);
-  --md-sys-color-on-error-container: rgb(255 218 214);
-  --md-sys-color-background: rgb(19 19 24);
-  --md-sys-color-on-background: rgb(229 225 233);
-  --md-sys-color-surface: rgb(19 19 24);
-  --md-sys-color-on-surface: rgb(229 225 233);
-  --md-sys-color-surface-variant: rgb(71 70 79);
-  --md-sys-color-on-surface-variant: rgb(200 197 208);
-  --md-sys-color-outline: rgb(146 143 154);
-  --md-sys-color-outline-variant: rgb(71 70 79);
-  --md-sys-color-shadow: rgb(0 0 0);
-  --md-sys-color-scrim: rgb(0 0 0);
-  --md-sys-color-inverse-surface: rgb(229 225 233);
-  --md-sys-color-inverse-on-surface: rgb(49 48 54);
-  --md-sys-color-inverse-primary: rgb(90 88 145);
-  --md-sys-color-primary-fixed: rgb(227 223 255);
-  --md-sys-color-on-primary-fixed: rgb(23 19 74);
-  --md-sys-color-primary-fixed-dim: rgb(196 192 255);
-  --md-sys-color-on-primary-fixed-variant: rgb(67 64 120);
-  --md-sys-color-secondary-fixed: rgb(227 224 249);
-  --md-sys-color-on-secondary-fixed: rgb(26 26 44);
-  --md-sys-color-secondary-fixed-dim: rgb(199 196 221);
-  --md-sys-color-on-secondary-fixed-variant: rgb(70 69 89);
-  --md-sys-color-tertiary-fixed: rgb(255 216 234);
-  --md-sys-color-on-tertiary-fixed: rgb(47 17 35);
-  --md-sys-color-tertiary-fixed-dim: rgb(234 185 209);
-  --md-sys-color-on-tertiary-fixed-variant: rgb(96 59 79);
-  --md-sys-color-surface-dim: rgb(19 19 24);
-  --md-sys-color-surface-bright: rgb(57 56 63);
-  --md-sys-color-surface-container-lowest: rgb(14 14 19);
-  --md-sys-color-surface-container-low: rgb(28 27 33);
-  --md-sys-color-surface-container: rgb(32 31 37);
-  --md-sys-color-surface-container-high: rgb(42 41 47);
-  --md-sys-color-surface-container-highest: rgb(53 52 58);
-}
+// Ink & Iris overrides applied via mat.theme(..., $ink-iris-overrides)
+$ink-iris-overrides: (
+  background: light-dark(#f8f7fc, #11101a),
+  on-background: light-dark(#161426, #f3f2fa),
+  surface: light-dark(#f8f7fc, #11101a),
+  on-surface: light-dark(#161426, #f3f2fa),
+  surface-variant: light-dark(#eceaf6, #252238),
+  on-surface-variant: light-dark(#524e6b, #a49fba),
+  surface-container-lowest: light-dark(#ffffff, #0b0a12),
+  surface-container-low: light-dark(#ffffff, #1b1929),
+  surface-container: light-dark(#eceaf6, #151321),
+  surface-container-high: light-dark(#ffffff, #1b1929),
+  surface-container-highest: light-dark(#e3dfee, #252238),
+  outline: light-dark(#767194, #7e789c),
+  outline-variant: light-dark(#d1cce3, #3b3657),
+  primary: light-dark(#5b46f5, #a78bfa),
+  on-primary: light-dark(#ffffff, #120b2e),
+  primary-container: light-dark(#eae6ff, #2e2652),
+  on-primary-container: light-dark(#3b2ba8, #ede9fe),
+  secondary: light-dark(#0f766e, #2dd4bf),
+  on-secondary: light-dark(#ffffff, #042f2e),
+  secondary-container: light-dark(#eae6ff, #2e2652),
+  on-secondary-container: light-dark(#3b2ba8, #ede9fe),
+  tertiary: light-dark(#92400e, #fbbf24),
+  on-tertiary: light-dark(#ffffff, #291504),
+  tertiary-container: light-dark(#fef3c7, #78350f),
+  on-tertiary-container: light-dark(#92400e, #fef3c7),
+  error: light-dark(#dc2626, #f87171),
+  on-error: light-dark(#ffffff, #450a0a),
+  error-container: light-dark(#fee2e2, #991b1b),
+  on-error-container: light-dark(#991b1b, #fee2e2),
+);
 
-.light {
-  --md-sys-color-primary: rgb(90 88 145);
-  --md-sys-color-surface-tint: rgb(90 88 145);
-  --md-sys-color-on-primary: rgb(255 255 255);
-  --md-sys-color-primary-container: rgb(227 223 255);
-  --md-sys-color-on-primary-container: rgb(67 64 120);
-  --md-sys-color-secondary: rgb(94 92 113);
-  --md-sys-color-on-secondary: rgb(255 255 255);
-  --md-sys-color-secondary-container: rgb(227 224 249);
-  --md-sys-color-on-secondary-container: rgb(70 69 89);
-  --md-sys-color-tertiary: rgb(122 83 103);
-  --md-sys-color-on-tertiary: rgb(255 255 255);
-  --md-sys-color-tertiary-container: rgb(255 216 234);
-  --md-sys-color-on-tertiary-container: rgb(96 59 79);
-  --md-sys-color-error: rgb(186 26 26);
-  --md-sys-color-on-error: rgb(255 255 255);
-  --md-sys-color-error-container: rgb(255 218 214);
-  --md-sys-color-on-error-container: rgb(147 0 10);
-  --md-sys-color-background: rgb(252 248 255);
-  --md-sys-color-on-background: rgb(28 27 33);
-  --md-sys-color-surface: rgb(252 248 255);
-  --md-sys-color-on-surface: rgb(28 27 33);
-  --md-sys-color-surface-variant: rgb(228 225 236);
-  --md-sys-color-on-surface-variant: rgb(71 70 79);
-  --md-sys-color-outline: rgb(120 118 128);
-  --md-sys-color-outline-variant: rgb(200 197 208);
-  --md-sys-color-shadow: rgb(0 0 0);
-  --md-sys-color-scrim: rgb(0 0 0);
-  --md-sys-color-inverse-surface: rgb(49 48 54);
-  --md-sys-color-inverse-on-surface: rgb(243 239 247);
-  --md-sys-color-inverse-primary: rgb(196 192 255);
-  --md-sys-color-primary-fixed: rgb(227 223 255);
-  --md-sys-color-on-primary-fixed: rgb(23 19 74);
-  --md-sys-color-primary-fixed-dim: rgb(196 192 255);
-  --md-sys-color-on-primary-fixed-variant: rgb(67 64 120);
-  --md-sys-color-secondary-fixed: rgb(227 224 249);
-  --md-sys-color-on-secondary-fixed: rgb(26 26 44);
-  --md-sys-color-secondary-fixed-dim: rgb(199 196 221);
-  --md-sys-color-on-secondary-fixed-variant: rgb(70 69 89);
-  --md-sys-color-tertiary-fixed: rgb(255 216 234);
-  --md-sys-color-on-tertiary-fixed: rgb(47 17 35);
-  --md-sys-color-tertiary-fixed-dim: rgb(234 185 209);
-  --md-sys-color-on-tertiary-fixed-variant: rgb(96 59 79);
-  --md-sys-color-surface-dim: rgb(220 216 224);
-  --md-sys-color-surface-bright: rgb(252 248 255);
-  --md-sys-color-surface-container-lowest: rgb(255 255 255);
-  --md-sys-color-surface-container-low: rgb(246 242 250);
-  --md-sys-color-surface-container: rgb(240 236 244);
-  --md-sys-color-surface-container-high: rgb(234 231 239);
-  --md-sys-color-surface-container-highest: rgb(229 225 233);
+// Semantic gameplay tokens consumed across components
+@mixin game-tokens() {
+  --game-card-bg: light-dark(#ffffff, #1b1929);
+  --game-card-border: light-dark(#e3dfee, #2e2a44);
+  --game-board-bg: light-dark(#eceaf6, #151321);
+  --game-board-border: light-dark(#dcd7ec, #2c2842);
+  --game-tile-idle-bg: light-dark(#ffffff, #252238);
+  --game-tile-idle-border: light-dark(#d1cce3, #3b3657);
+  --game-tile-hover-bg: light-dark(#f4f2fc, #2f2b47);
+  --game-tile-shadow: light-dark(0 1px 3px rgba(22, 20, 38, 0.08), 0 2px 6px rgba(0, 0, 0, 0.35));
+  --game-tile-lit-bg: light-dark(#5b46f5, #a78bfa);
+  --game-tile-lit-border: light-dark(#4530d4, #c4b5fd);
+  --game-tile-lit-glow: light-dark(rgba(91, 70, 245, 0.38), rgba(167, 139, 250, 0.45));
+  --game-tile-selected-bg: light-dark(#0f766e, #2dd4bf);
+  --game-tile-selected-border: light-dark(#115e59, #5eead4);
+  --game-tile-selected-glow: light-dark(rgba(15, 118, 110, 0.32), rgba(45, 212, 191, 0.38));
+  --game-tile-hit-bg: light-dark(#dcfce7, #166534);
+  --game-tile-hit-border: light-dark(#16a34a, #4ade80);
+  --game-tile-hit-text: light-dark(#14532d, #dcfce7);
+  --game-tile-wrong-bg: light-dark(#fee2e2, #991b1b);
+  --game-tile-wrong-border: light-dark(#dc2626, #f87171);
+  --game-tile-wrong-text: light-dark(#991b1b, #fee2e2);
+  --game-success-bg: light-dark(#dcfce7, #166534);
+  --game-success-text: light-dark(#14532d, #dcfce7);
+  --game-accent-bg: light-dark(#fef3c7, #78350f);
+  --game-accent-text: light-dark(#92400e, #fef3c7);
+  --game-dialog-shadow: light-dark(0 12px 32px rgba(22, 20, 38, 0.14), 0 16px 40px rgba(0, 0, 0, 0.48));
 }
 

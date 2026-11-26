@@ -7,6 +7,11 @@ import {GameComponent} from './components/game/game';
 import {StatsDialogComponent} from './components/stats-dialog/stats-dialog';
 import {SoundService} from './services/sound.service';
 
+const THEME_COLORS = {
+  light: '#f8f7fc',
+  dark: '#11101a',
+} as const;
+
 @Component({
   selector: 'app-root',
   imports: [GameComponent, MatDialogModule, MatIconButton, MatIcon],
@@ -22,7 +27,7 @@ export class App implements OnInit {
   currentTheme = signal<'light' | 'dark'>('light');
 
   ngOnInit(): void {
-    const storedTheme = localStorage.getItem('theme');
+    const storedTheme = this.#readStoredTheme();
     if (storedTheme === 'light' || storedTheme === 'dark') {
       this.currentTheme.set(storedTheme);
     } else if (
@@ -31,13 +36,13 @@ export class App implements OnInit {
     ) {
       this.currentTheme.set('dark');
     }
-    this.#updateBodyClass();
+    this.#applyTheme();
   }
 
   toggleTheme(): void {
     this.currentTheme.update(current => (current === 'light' ? 'dark' : 'light'));
-    localStorage.setItem('theme', this.currentTheme());
-    this.#updateBodyClass();
+    this.#saveStoredTheme(this.currentTheme());
+    this.#applyTheme();
   }
 
   toggleMute(): void {
@@ -50,9 +55,33 @@ export class App implements OnInit {
     });
   }
 
-  #updateBodyClass(): void {
+  #applyTheme(): void {
+    const theme = this.currentTheme();
+    this.document.documentElement.classList.remove('dark', 'light');
+    this.document.documentElement.classList.add(theme);
     this.document.body.classList.remove('dark', 'light');
-    this.document.body.classList.add(this.currentTheme());
+    this.document.querySelector('meta[name="theme-color"]')?.setAttribute(
+      'content',
+      THEME_COLORS[theme]
+    );
+  }
+
+  #readStoredTheme(): string | null {
+    try {
+      return typeof localStorage !== 'undefined' ? localStorage.getItem('theme') : null;
+    } catch {
+      return null;
+    }
+  }
+
+  #saveStoredTheme(theme: 'light' | 'dark'): void {
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('theme', theme);
+      }
+    } catch {
+      // Ignore storage quota or privacy mode errors
+    }
   }
 
   get muteAriaLabel(): string {

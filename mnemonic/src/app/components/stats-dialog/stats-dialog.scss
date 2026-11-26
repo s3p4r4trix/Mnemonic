@@ -14,7 +14,7 @@
   padding: 4px;
   margin-bottom: 12px;
   border-radius: 10px;
-  background-color: var(--md-sys-color-surface-container-high, var(--md-sys-color-primary-container));
+  background-color: var(--mat-sys-surface-container);
 }
 
 .stats-mode-tab {
@@ -29,16 +29,16 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   background-color: transparent;
-  color: var(--md-sys-color-on-surface-variant);
+  color: var(--mat-sys-on-surface-variant);
 
   &.active {
-    background-color: var(--md-sys-color-primary);
-    color: var(--md-sys-color-on-primary);
+    background-color: var(--mat-sys-primary);
+    color: var(--mat-sys-on-primary);
     font-weight: 600;
   }
 
   &:focus-visible {
-    outline: 2px solid var(--md-sys-color-primary);
+    outline: 2px solid var(--mat-sys-primary);
     outline-offset: 1px;
   }
 }
@@ -63,19 +63,20 @@
   margin-bottom: 12px;
   padding: 8px 10px;
   border-radius: 10px;
-  background-color: var(--md-sys-color-secondary-container);
-  color: var(--md-sys-color-on-secondary-container);
+  background-color: var(--mat-sys-primary-container);
+  color: var(--mat-sys-on-primary-container);
 }
 
 .daily-today-summary {
   font-size: 0.84rem;
   font-weight: 500;
+  font-variant-numeric: tabular-nums;
 }
 
 .copy-error-note {
   margin: -6px 0 6px;
   font-size: 0.78rem;
-  color: var(--md-sys-color-error);
+  color: var(--mat-sys-error);
 }
 
 .copy-status-region {
@@ -88,9 +89,9 @@
   margin-bottom: 12px;
   padding: 8px;
   border-radius: 8px;
-  border: 1px solid var(--md-sys-color-outline-variant);
-  background-color: var(--md-sys-color-surface-container);
-  color: var(--md-sys-color-on-surface);
+  border: 1px solid var(--mat-sys-outline-variant);
+  background-color: var(--mat-sys-surface-container);
+  color: var(--mat-sys-on-surface);
   font-family: monospace;
   font-size: 0.78rem;
   resize: none;
@@ -108,7 +109,7 @@
   gap: 3px;
   padding: 8px;
   border-radius: 10px;
-  background-color: var(--md-sys-color-surface-container, rgba(0, 0, 0, 0.04));
+  background-color: var(--mat-sys-surface-container);
 }
 
 .heatmap-cell {
@@ -117,33 +118,33 @@
   border-radius: 3px;
 
   &.level-0 {
-    background-color: var(--md-sys-color-surface-container-highest, rgba(128, 128, 128, 0.16));
+    background-color: var(--mat-sys-surface-container-highest);
   }
 
   &.level-1 {
-    background-color: color-mix(in srgb, var(--md-sys-color-primary) 48%, var(--md-sys-color-surface-container-highest));
+    background-color: color-mix(in srgb, var(--mat-sys-primary) 48%, var(--mat-sys-surface-container-highest));
   }
 
   &.level-2 {
-    background-color: color-mix(in srgb, var(--md-sys-color-primary) 68%, var(--md-sys-color-surface-container-highest));
+    background-color: color-mix(in srgb, var(--mat-sys-primary) 68%, var(--mat-sys-surface-container-highest));
   }
 
   &.level-3 {
-    background-color: color-mix(in srgb, var(--md-sys-color-primary) 84%, var(--md-sys-color-surface-container-highest));
+    background-color: color-mix(in srgb, var(--mat-sys-primary) 84%, var(--mat-sys-surface-container-highest));
   }
 
   &.level-4 {
-    background-color: var(--md-sys-color-primary);
+    background-color: var(--mat-sys-primary);
   }
 
   &.is-failed {
-    background-color: color-mix(in srgb, var(--md-sys-color-error) 28%, var(--md-sys-color-surface-container-highest));
-    border: 1px dashed var(--md-sys-color-error);
+    background-color: color-mix(in srgb, var(--mat-sys-error) 28%, var(--mat-sys-surface-container-highest));
+    border: 1px dashed var(--mat-sys-error);
     box-sizing: border-box;
   }
 
   &.is-today {
-    outline: 1.5px solid var(--md-sys-color-on-surface);
+    outline: 1.5px solid var(--mat-sys-on-surface);
     outline-offset: -1px;
   }
 }
@@ -158,8 +159,8 @@
   align-items: center;
   padding: 10px 8px;
   border-radius: 10px;
-  background-color: var(--md-sys-color-surface-container-high, var(--md-sys-color-primary-container));
-  color: var(--md-sys-color-on-surface);
+  background-color: var(--mat-sys-surface-container);
+  color: var(--mat-sys-on-surface);
   text-align: center;
 }
 
@@ -167,20 +168,22 @@
   font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  opacity: 0.78;
+  font-weight: 600;
+  color: var(--mat-sys-on-surface-variant);
 }
 
 .metric-value {
   font-size: 1.2rem;
-  font-weight: 600;
-  color: var(--md-sys-color-primary);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--mat-sys-primary);
   margin-top: 2px;
 }
 
 .accuracy-breakdown {
   margin: 0 0 12px;
   font-size: 0.85rem;
-  opacity: 0.85;
+  color: var(--mat-sys-on-surface-variant);
   text-align: center;
 }
 
@@ -189,13 +192,13 @@
   font-size: 0.85rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  opacity: 0.8;
+  color: var(--mat-sys-on-surface-variant);
 }
 
 .empty-state {
   margin: 0;
   font-size: 0.9rem;
-  opacity: 0.8;
+  color: var(--mat-sys-on-surface-variant);
 }
 
 .runs-table-wrap {
@@ -208,19 +211,20 @@
   border-collapse: separate;
   border-spacing: 0 4px;
   font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
 
   th {
     text-align: left;
     font-size: 0.72rem;
-    font-weight: 500;
+    font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.04em;
-    opacity: 0.7;
+    color: var(--mat-sys-on-surface-variant);
     padding: 2px 8px 4px;
   }
 
   tbody tr {
-    background-color: var(--md-sys-color-surface-container, transparent);
+    background-color: var(--mat-sys-surface-container);
   }
 
   td {
@@ -238,7 +242,7 @@
 
 .run-score {
   font-weight: 600;
-  color: var(--md-sys-color-primary);
+  color: var(--mat-sys-primary);
 }
 
 .stats-dialog-actions {
@@ -255,8 +259,8 @@
 }
 
 .confirm-reset-btn {
-  --mat-button-filled-container-color: var(--md-sys-color-error);
-  --mat-button-filled-label-text-color: var(--md-sys-color-on-error);
+  --mat-button-filled-container-color: var(--mat-sys-error);
+  --mat-button-filled-label-text-color: var(--mat-sys-on-error);
 }
 
 .reset-prompt {
