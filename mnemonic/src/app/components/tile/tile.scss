@@ -2,25 +2,29 @@
   position: relative;
   padding: 0;
   font: inherit;
-  background-color: var(--md-sys-color-surface-container);
-  color: var(--md-sys-color-on-surface);
-  border: 1px solid var(--md-sys-color-outline-variant);
-  border-radius: 8px;
+  background-color: var(--game-tile-idle-bg);
+  color: var(--mat-sys-on-surface);
+  border: 1px solid var(--game-tile-idle-border);
+  border-radius: 10px;
   display: flex;
   justify-content: center;
   align-items: center;
   cursor: default;
   touch-action: manipulation;
   transition: background-color 0.2s ease-in-out, transform 0.1s ease, border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-  box-shadow: var(--md-sys-color-shadow) 0 1px 2px;
+  box-shadow: var(--game-tile-shadow);
 }
 
 .tile.interactive {
   cursor: pointer;
+
+  &:active {
+    transform: scale(0.96);
+  }
 }
 
 .tile:focus-visible {
-  outline: 3px solid var(--md-sys-color-primary);
+  outline: 3px solid var(--mat-sys-primary);
   outline-offset: 2px;
   z-index: 1;
 }
@@ -28,21 +32,21 @@
 /* Apply hover styles only on devices that support true hover */
 @media (hover: hover) {
   .tile.interactive:not(.lit):not(.selected-by-player):not(.correct-clicked):not(.incorrect-clicked):hover {
-    background-color: var(--md-sys-color-surface-container-high);
-    border-color: var(--md-sys-color-outline);
+    background-color: var(--game-tile-hover-bg);
+    border-color: var(--mat-sys-outline);
   }
 }
 
 .tile.lit {
-  background-color: var(--md-sys-color-primary-container);
-  border-color: var(--md-sys-color-primary);
-  box-shadow: 0 0 8px 2px var(--md-sys-color-primary-container), var(--md-sys-color-shadow) 0 1px 2px;
+  background-color: var(--game-tile-lit-bg);
+  border: 2px solid var(--game-tile-lit-border);
+  box-shadow: 0 0 14px 2px var(--game-tile-lit-glow), var(--game-tile-shadow);
 }
 
 .tile.selected-by-player {
-  background-color: var(--md-sys-color-on-primary-fixed-variant);
-  border-color: var(--md-sys-color-secondary);
-  box-shadow: 0 0 8px 2px var(--md-sys-color-secondary-container), var(--md-sys-color-shadow) 0 1px 2px;
+  background-color: var(--game-tile-selected-bg);
+  border: 2px solid var(--game-tile-selected-border);
+  box-shadow: 0 0 12px 2px var(--game-tile-selected-glow), var(--game-tile-shadow);
 }
 
 .tile.round-cleared {
@@ -55,7 +59,7 @@
   }
   45% {
     transform: scale(1.08);
-    box-shadow: 0 0 14px 3px var(--md-sys-color-primary);
+    box-shadow: 0 0 14px 3px var(--game-tile-hit-border);
   }
   100% {
     transform: scale(1);
@@ -63,27 +67,28 @@
 }
 
 .tile.correct-clicked {
-  background-color: var(--md-sys-color-inverse-primary);
-  border: 2px solid var(--md-sys-color-primary);
-  color: var(--md-sys-color-on-primary-container);
+  background-color: var(--game-tile-hit-bg);
+  border: 2px solid var(--game-tile-hit-border);
+  color: var(--game-tile-hit-text);
 }
 
 .tile.correct-not-clicked {
-  background-color: var(--md-sys-color-surface-container);
-  border: 2px dashed var(--md-sys-color-primary);
-  color: var(--md-sys-color-on-surface);
-  opacity: 0.9;
+  background-color: var(--game-tile-idle-bg);
+  border: 2px dashed var(--mat-sys-primary);
+  color: var(--mat-sys-on-surface);
+  opacity: 0.95;
 }
 
 .tile.incorrect-clicked {
-  background-color: var(--md-sys-color-error-container);
-  border: 2px solid var(--md-sys-color-error);
-  color: var(--md-sys-color-on-error-container);
+  background-color: var(--game-tile-wrong-bg);
+  border: 2px solid var(--game-tile-wrong-border);
+  color: var(--game-tile-wrong-text);
 }
 
 .tile-order {
   font-size: 1.05rem;
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
   line-height: 1;
 }
 
@@ -110,6 +115,10 @@
 @media (prefers-reduced-motion: reduce) {
   .tile {
     transition: none;
+  }
+
+  .tile.interactive:active {
+    transform: none;
   }
 
   .tile.round-cleared {

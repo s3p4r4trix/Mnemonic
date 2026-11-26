@@ -27,8 +27,9 @@ import {TileComponent} from "../tile/tile";
       display: grid;
       margin: 12px auto;
       padding: 10px;
-      background-color: var(--grid-bg);
-      border-radius: 10px;
+      background-color: var(--game-board-bg);
+      border: 1px solid var(--game-board-border);
+      border-radius: 14px;
       width: fit-content;
     }
   `]

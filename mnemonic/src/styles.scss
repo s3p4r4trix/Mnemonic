@@ -3,19 +3,32 @@
 @use './assets/_theme.scss' as theme;
 @include mat.core();
 
-
 html {
   color-scheme: light;
-  @include mat.theme((
-    color: theme.$primary-palette,
-    tertiary: theme.$tertiary-palette,
-    theme-type: light,
-    typography: Roboto,
-    density: 0
-  ));
+  background-color: var(--mat-sys-surface);
+  color: var(--mat-sys-on-surface);
+
+  @include mat.theme(
+    (
+      color: (
+        primary: theme.$primary-palette,
+        tertiary: theme.$tertiary-palette,
+        theme-type: color-scheme,
+      ),
+      typography: Roboto,
+      density: 0,
+    ),
+    theme.$ink-iris-overrides
+  );
+
+  @include theme.game-tokens();
 }
 
-body.dark {
+html.light {
+  color-scheme: light;
+}
+
+html.dark {
   color-scheme: dark;
 }
 
@@ -23,10 +36,16 @@ body.dark {
 body {
   margin: 0;
   font-family: Roboto, "Helvetica Neue", sans-serif;
-  background-color: var(--md-sys-color-surface-variant);
-  color: var(--md-sys-color-on-surface-variant);
+  background-color: var(--mat-sys-surface);
+  color: var(--mat-sys-on-surface);
   transition: background-color 0.3s ease, color 0.3s ease;
   touch-action: manipulation;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body {
+    transition: none;
+  }
 }
 
 html, body {

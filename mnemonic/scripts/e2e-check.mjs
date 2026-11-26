@@ -178,6 +178,135 @@ async function waitForMessage(cdp, expectedSubstring, timeoutMs = 15000) {
   throw new Error(`Timed out waiting for status message containing "${expectedSubstring}"`);
 }
 
+function parseRgbString(str) {
+  const match = str && str.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
+  if (!match) return null;
+  return {
+    r: Number(match[1]),
+    g: Number(match[2]),
+    b: Number(match[3]),
+    a: match[4] === undefined ? 1 : Number(match[4]),
+  };
+}
+
+function relativeLuminance({ r, g, b }) {
+  const toLinear = (channel) => {
+    const c = channel / 255;
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  };
+  return 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
+}
+
+function contrastRatio(rgbA, rgbB) {
+  const c1 = typeof rgbA === 'string' ? parseRgbString(rgbA) : rgbA;
+  const c2 = typeof rgbB === 'string' ? parseRgbString(rgbB) : rgbB;
+  assert.ok(c1 && c2, `Invalid RGB colors for contrast check: "${rgbA}" vs "${rgbB}"`);
+  const l1 = relativeLuminance(c1);
+  const l2 = relativeLuminance(c2);
+  return Number(((Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05)).toFixed(2));
+}
+
+async function verifyIdleThemeContrast(cdp, expectedMode) {
+  const expectedMeta = expectedMode === 'dark' ? '#11101a' : '#f8f7fc';
+  const snapshot = await cdp.eval(`(() => {
+    function parse(str) {
+      const m = str && str.match(/rgba?\\((\\d+),\\s*(\\d+),\\s*(\\d+)(?:,\\s*([\\d.]+))?\\)/);
+      return m ? { r: +m[1], g: +m[2], b: +m[3], a: m[4] === undefined ? 1 : +m[4] } : null;
+    }
+    function blend(fg, bg) {
+      const a = fg.a;
+      return {
+        r: Math.round(fg.r * a + bg.r * (1 - a)),
+        g: Math.round(fg.g * a + bg.g * (1 - a)),
+        b: Math.round(fg.b * a + bg.b * (1 - a)),
+        a: 1,
+      };
+    }
+    function effectiveBg(el) {
+      const layers = [];
+      let cur = el;
+      while (cur && cur.nodeType === 1) {
+        const bg = parse(getComputedStyle(cur).backgroundColor);
+        if (bg && bg.a > 0) layers.push(bg);
+        cur = cur.parentElement;
+      }
+      let out = { r: 255, g: 255, b: 255, a: 1 };
+      for (let i = layers.length - 1; i >= 0; i--) {
+        out = layers[i].a >= 0.99 ? layers[i] : blend(layers[i], out);
+      }
+      return 'rgb(' + out.r + ', ' + out.g + ', ' + out.b + ')';
+    }
+    const selectors = [
+      '.app-title',
+      '.stat-value',
+      '.mode-pill.active',
+      '.mode-pill:not(.active)',
+      '.game-actions button:first-child',
+      '#daily-challenge-button',
+    ];
+    return {
+      colorScheme: getComputedStyle(document.documentElement).colorScheme,
+      themeMeta: document.querySelector('meta[name="theme-color"]')?.getAttribute('content') || '',
+      bodyBg: getComputedStyle(document.body).backgroundColor,
+      progressiveBorder: getComputedStyle(document.querySelector('button.progressive-toggle')).borderTopColor,
+      textProbes: selectors.map((sel) => {
+        const el = document.querySelector(sel);
+        return el
+          ? { sel, fg: getComputedStyle(el).color, bg: effectiveBg(el) }
+          : { sel, fg: null, bg: null };
+      }),
+    };
+  })()`);
+
+  assert.equal(snapshot.colorScheme, expectedMode, `Expected html colorScheme=${expectedMode}`);
+  assert.equal(snapshot.themeMeta, expectedMeta, `Expected meta[name="theme-color"]=${expectedMeta}`);
+
+  const ratios = {};
+  for (const probe of snapshot.textProbes) {
+    assert.ok(probe.fg && probe.bg, `Missing element for contrast probe: ${probe.sel}`);
+    const cr = contrastRatio(probe.fg, probe.bg);
+    ratios[probe.sel] = cr;
+    assert.ok(cr >= 4.5, `${expectedMode} text contrast for ${probe.sel} was ${cr}:1 (< 4.5:1)`);
+  }
+
+  const toggleBorderCr = contrastRatio(snapshot.progressiveBorder, snapshot.bodyBg);
+  ratios['.progressive-toggle:border'] = toggleBorderCr;
+  assert.ok(
+    toggleBorderCr >= 3.0,
+    `${expectedMode} .progressive-toggle border contrast was ${toggleBorderCr}:1 (< 3.0:1)`
+  );
+
+  return ratios;
+}
+
+async function measureSettledLitTile(cdp, settleMs = 250) {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    let sawLit = false;
+    for (let i = 0; i < 60; i++) {
+      if (await cdp.eval(`Boolean(document.querySelector('button.tile.lit'))`)) {
+        sawLit = true;
+        break;
+      }
+      await sleep(30);
+    }
+    assert.ok(sawLit, 'Timed out waiting for a lit tile during playback');
+    await sleep(settleMs);
+    const probe = await cdp.eval(`(() => {
+      const lit = document.querySelector('button.tile.lit');
+      const idle = document.querySelector('button.tile:not(.lit):not(.selected-by-player)');
+      const grid = document.querySelector('.grid-container');
+      if (!lit || !idle || !grid) return null;
+      return {
+        litBg: getComputedStyle(lit).backgroundColor,
+        idleBg: getComputedStyle(idle).backgroundColor,
+        gridBg: getComputedStyle(grid).backgroundColor,
+      };
+    })()`);
+    if (probe) return probe;
+  }
+  throw new Error('Could not sample a settled lit tile before it turned off');
+}
+
 async function main() {
   const { url: providedUrl, screenshotsDir } = parseArgs(process.argv.slice(2));
   let staticServer = null;
@@ -231,19 +360,21 @@ async function main() {
       await sleep(150);
     }
 
-    // 1. Verify initial light-mode idle screen
+    // 1. Verify initial light-mode idle screen & contrast
     const title = await cdp.eval(`document.querySelector('h1')?.textContent?.trim()`);
     const hudIdle = await cdp.eval(`document.querySelector('.stats')?.innerText?.replace(/\\s+/g, ' ').trim()`);
     assert.equal(title, 'Mnemonic Trainer');
     assert.match(hudIdle, /LEVEL 1.*SCORE 0.*TILES 0 \/ 3/i);
+    const lightIdleContrast = await verifyIdleThemeContrast(cdp, 'light');
     await cdp.screenshot(screenshotsDir, '1_idle_light.png');
 
-    // 2. Toggle theme to dark mode & verify mute toggle persistence
-    const initialDark = await cdp.eval(`document.body.classList.contains('dark')`);
+    // 2. Toggle theme to dark mode, verify contrast after 0.3s transition, & verify mute toggle persistence
+    const initialDark = await cdp.eval(`document.documentElement.classList.contains('dark')`);
     await cdp.eval(`document.querySelector('#theme-toggle-button')?.click()`);
-    await sleep(150);
-    const toggledDark = await cdp.eval(`document.body.classList.contains('dark')`);
-    assert.notEqual(toggledDark, initialDark, 'Theme toggle should flip dark mode class');
+    await sleep(400);
+    const toggledDark = await cdp.eval(`document.documentElement.classList.contains('dark')`);
+    assert.notEqual(toggledDark, initialDark, 'Theme toggle should flip dark mode class on <html>');
+    const darkIdleContrast = await verifyIdleThemeContrast(cdp, 'dark');
 
     const initialMuted = await cdp.eval(`document.querySelector('#mute-toggle-button')?.getAttribute('aria-pressed')`);
     assert.equal(initialMuted, 'false', 'Mute toggle should default to unmuted');
@@ -281,6 +412,11 @@ async function main() {
       [...document.querySelectorAll('button')].find(b => b.textContent.includes('Start Game'))?.click();
     `);
 
+    const darkLitProbe = await measureSettledLitTile(cdp, 250);
+    assert.notEqual(darkLitProbe.gridBg, 'rgba(0, 0, 0, 0)', 'Grid tray must have an explicit background');
+    const darkLitCr = contrastRatio(darkLitProbe.litBg, darkLitProbe.idleBg);
+    assert.ok(darkLitCr >= 3.0, `Dark lit tile contrast was ${darkLitCr}:1 (< 3.0:1)`);
+
     await waitForMessage(cdp, 'Your turn');
     const seq1 = await cdp.eval(`window.__recordedSeq`);
     assert.equal(seq1.length, 3, `Expected 3 flashed tiles on level 1, got ${JSON.stringify(seq1)}`);
@@ -299,7 +435,18 @@ async function main() {
 
     // 5. Complete Level 1 in exact order and verify Round Cleared! banner + Streak badge
     await cdp.eval(`document.querySelector('button[data-tile-id="${seq1[0]}"]')?.click()`);
-    await sleep(100);
+    await sleep(250);
+    const darkSelProbe = await cdp.eval(`(() => {
+      const sel = document.querySelector('button[data-tile-id="${seq1[0]}"]');
+      const idle = document.querySelector('button.tile:not(.selected-by-player):not(.lit)');
+      return {
+        selectedBg: getComputedStyle(sel).backgroundColor,
+        idleBg: getComputedStyle(idle).backgroundColor,
+      };
+    })()`);
+    const darkSelectedCr = contrastRatio(darkSelProbe.selectedBg, darkSelProbe.idleBg);
+    assert.ok(darkSelectedCr >= 3.0, `Dark selected tile contrast was ${darkSelectedCr}:1 (< 3.0:1)`);
+    assert.notEqual(darkSelProbe.selectedBg, darkLitProbe.litBg, 'Dark selected tile must be distinct from lit tile');
     const hudMidInput = await cdp.eval(`document.querySelector('.stats')?.innerText?.replace(/\\s+/g, ' ').trim()`);
     assert.match(hudMidInput, /TILES 1 \/ 3/i);
     await cdp.screenshot(screenshotsDir, '2_input_dark.png');
@@ -400,7 +547,15 @@ async function main() {
     );
     await sleep(250);
 
-    // 8. Daily Challenge: deterministic sequence, stats isolation, Game Over actions, unranked replay, and Stats heatmap
+    // 8. Daily Challenge (in light mode): contrast checks, deterministic sequence, stats isolation, Game Over actions, unranked replay, and Stats heatmap
+    const isDarkBeforeDaily = await cdp.eval(`document.documentElement.classList.contains('dark')`);
+    if (isDarkBeforeDaily) {
+      await cdp.eval(`document.querySelector('#theme-toggle-button')?.click()`);
+      await sleep(400);
+    }
+    const isLightForDaily = await cdp.eval(`document.documentElement.classList.contains('light')`);
+    assert.equal(isLightForDaily, true, 'Expected <html> to have light class before Daily Challenge');
+
     await cdp.eval(`
       window.__recordedSeq = [];
       if (window.__dailyObs) window.__dailyObs.disconnect();
@@ -414,11 +569,29 @@ async function main() {
       document.querySelector('#daily-challenge-button')?.click();
     `);
 
+    const lightLitProbe = await measureSettledLitTile(cdp, 280);
+    assert.notEqual(lightLitProbe.gridBg, 'rgba(0, 0, 0, 0)', 'Light grid tray must have an explicit background');
+    const lightLitCr = contrastRatio(lightLitProbe.litBg, lightLitProbe.idleBg);
+    assert.ok(lightLitCr >= 3.0, `Light lit tile contrast was ${lightLitCr}:1 (< 3.0:1)`);
+
     await waitForMessage(cdp, 'Your turn');
     const dailySeq1 = await cdp.eval(`window.__recordedSeq`);
     assert.equal(dailySeq1.length, 3, `Expected 3 flashed tiles in Daily Lvl 1, got ${JSON.stringify(dailySeq1)}`);
 
     await cdp.eval(`document.querySelector('button[data-tile-id="${dailySeq1[0]}"]')?.click()`);
+    await sleep(250);
+    const lightSelProbe = await cdp.eval(`(() => {
+      const sel = document.querySelector('button[data-tile-id="${dailySeq1[0]}"]');
+      const idle = document.querySelector('button.tile:not(.selected-by-player):not(.lit)');
+      return {
+        selectedBg: getComputedStyle(sel).backgroundColor,
+        idleBg: getComputedStyle(idle).backgroundColor,
+      };
+    })()`);
+    const lightSelectedCr = contrastRatio(lightSelProbe.selectedBg, lightSelProbe.idleBg);
+    assert.ok(lightSelectedCr >= 3.0, `Light selected tile contrast was ${lightSelectedCr}:1 (< 3.0:1)`);
+    assert.notEqual(lightSelProbe.selectedBg, lightLitProbe.litBg, 'Light selected tile must be distinct from lit tile');
+
     await cdp.eval(`document.querySelector('button[data-tile-id="${dailySeq1[1]}"]')?.click()`);
     await cdp.eval(`document.querySelector('button[data-tile-id="${dailySeq1[2]}"]')?.click()`);
 
@@ -552,6 +725,14 @@ async function main() {
             statsDialogReset: true,
             dailyDeterministic: true,
             dailyHeatmapCells: dailyStatsView.heatmapCount,
+            contrastChecks: {
+              lightIdle: lightIdleContrast,
+              darkIdle: darkIdleContrast,
+              darkLitVsIdle: darkLitCr,
+              darkSelectedVsIdle: darkSelectedCr,
+              lightLitVsIdle: lightLitCr,
+              lightSelectedVsIdle: lightSelectedCr,
+            },
             review,
             consoleErrors: 0,
           },

@@ -1,12 +1,10 @@
-@use '@angular/material' as mat;
-
 :host {
-  background-color: var(--md-sys-color-surface-container-high);
-  border: 1px solid var(--md-sys-color-outline-variant);
+  background-color: var(--game-card-bg);
+  border: 1px solid var(--game-card-border);
   border-radius: 12px;
   padding: 24px;
   text-align: center;
-  box-shadow: var(--md-sys-color-shadow) 0 4px 12px;
+  box-shadow: var(--game-dialog-shadow);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -15,8 +13,8 @@
 
 .game-over-title {
   font-size: 2rem;
-  color: var(--md-sys-color-on-surface);
-  font-weight: bold;
+  color: var(--mat-sys-on-surface);
+  font-weight: 700;
   margin-bottom: 8px;
 }
 
@@ -27,16 +25,17 @@
 
 .final-score-label {
   font-size: 1.1rem;
-  color: var(--md-sys-color-on-surface-variant);
+  color: var(--mat-sys-on-surface-variant);
   margin-bottom: 4px;
   margin-top: 8px;
 }
 
 .final-score-value {
   font-size: 2.8rem;
-  font-weight: bold;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
   margin-top: 0;
-  color: var(--md-sys-color-primary);
+  color: var(--mat-sys-primary);
 }
 
 .stats-container {
@@ -45,12 +44,13 @@
   width: 100%;
   padding-bottom: 12px;
   gap: 8px;
+  font-variant-numeric: tabular-nums;
 }
 
 .stats-container p {
   margin: 0;
   font-size: 0.9rem;
-  color: var(--md-sys-color-on-surface-variant);
+  color: var(--mat-sys-on-surface-variant);
 }
 
 .new-best-pill,
@@ -61,8 +61,8 @@
   border-radius: 999px;
   font-size: 0.85rem;
   font-weight: 600;
-  background-color: var(--md-sys-color-tertiary-container);
-  color: var(--md-sys-color-on-tertiary-container);
+  background-color: var(--game-accent-bg);
+  color: var(--game-accent-text);
 }
 
 .round-strip {
@@ -74,7 +74,7 @@
 .copy-error-note {
   margin: 0 0 6px;
   font-size: 0.8rem;
-  color: var(--md-sys-color-error);
+  color: var(--mat-sys-error);
 }
 
 .copy-status-region {
@@ -87,9 +87,9 @@
   margin-bottom: 10px;
   padding: 8px;
   border-radius: 8px;
-  border: 1px solid var(--md-sys-color-outline-variant);
-  background-color: var(--md-sys-color-surface-container);
-  color: var(--md-sys-color-on-surface);
+  border: 1px solid var(--mat-sys-outline-variant);
+  background-color: var(--mat-sys-surface-container);
+  color: var(--mat-sys-on-surface);
   font-family: monospace;
   font-size: 0.78rem;
   resize: none;
@@ -98,7 +98,7 @@
 .unranked-note {
   margin-bottom: 10px;
   font-size: 0.82rem;
-  color: var(--md-sys-color-on-surface-variant);
+  color: var(--mat-sys-on-surface-variant);
 }
 
 .dialog-actions {
