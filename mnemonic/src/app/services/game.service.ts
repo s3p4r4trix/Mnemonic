@@ -1,7 +1,10 @@
 import {computed, DestroyRef, inject, Injectable, signal} from "@angular/core";
+import {DailyDateKey, RoundOutcome} from '../models/daily.model';
 import {GAME_MODE_CONFIGS, GameMode} from '../models/game-mode.model';
 import {computePlaybackTimings, isSpeedPreset, SpeedPreset} from '../models/speed-preset.model';
 import {Tile} from '../models/tile.model';
+import {createSeededRng} from '../utils/daily-rng';
+import {DailyChallengeService} from './daily-challenge.service';
 import {SoundService} from './sound.service';
 import {StatsService} from './stats.service';
 
@@ -20,17 +23,25 @@ export function streakMultiplier(streak: number): number {
 })
 export class GameService {
   readonly #destroyRef = inject(DestroyRef);
+  readonly #dailyService = inject(DailyChallengeService);
   readonly #soundService = inject(SoundService);
   readonly #statsService = inject(StatsService);
 
   // Game State
   mode = signal<GameMode>("classic");
-  readonly modeConfig = computed(() => GAME_MODE_CONFIGS[this.mode()]);
+  isDailyChallenge = signal(false);
+  activeDailyDateKey = signal<DailyDateKey | null>(null);
+  readonly effectiveMode = computed<GameMode>(() =>
+    this.isDailyChallenge() ? "classic" : this.mode()
+  );
+  readonly modeConfig = computed(() => GAME_MODE_CONFIGS[this.effectiveMode()]);
   speedPreset = signal<SpeedPreset>(this.#loadSpeedPreset());
   progressiveSpeed = signal<boolean>(this.#loadProgressiveSpeed());
   currentLevel = signal(1);
   readonly playbackTimings = computed(() =>
-    computePlaybackTimings(this.speedPreset(), this.currentLevel(), this.progressiveSpeed())
+    this.isDailyChallenge()
+      ? computePlaybackTimings("normal", this.currentLevel(), false)
+      : computePlaybackTimings(this.speedPreset(), this.currentLevel(), this.progressiveSpeed())
   );
   correctlyClickedTilesInSequence = signal(0);
   correctlyClickedTilesNotInSequence = signal(0);
@@ -46,6 +57,7 @@ export class GameService {
   lastRoundPoints = signal(0);
   lastRoundMultiplier = signal(1);
   lastRunWasNewBest = signal(false);
+  roundOutcomes = signal<readonly RoundOutcome[]>([]);
   currentMultiplier = computed(() => streakMultiplier(this.streak()));
 
   // Viewport & Grid Configuration
@@ -72,6 +84,7 @@ export class GameService {
   // Sequence and Player Input
   #sequence: number[] = [];
   #playerInput: number[] = [];
+  #rng: () => number = Math.random;
 
   constructor() {
     this.initializeGrid();
@@ -105,6 +118,9 @@ export class GameService {
   setMode(mode: GameMode): void {
     this.mode.set(mode);
     this.#statsService.activeMode.set(mode);
+    this.isDailyChallenge.set(false);
+    this.activeDailyDateKey.set(null);
+    this.#rng = Math.random;
     this.#resetRunState();
     this.gameState.set("idle");
   }
@@ -120,7 +136,29 @@ export class GameService {
   }
 
   startGame(): void {
+    this.isDailyChallenge.set(false);
+    this.activeDailyDateKey.set(null);
+    this.#rng = Math.random;
     this.#resetRunState();
+    this.nextRound();
+  }
+
+  startDailyChallenge(now?: Date): void {
+    const dateKey = this.#dailyService.refreshToday(now);
+    this.#beginDailyRun(dateKey);
+  }
+
+  replayActiveDailyChallenge(): void {
+    const dateKey = this.activeDailyDateKey() ?? this.#dailyService.refreshToday();
+    this.#beginDailyRun(dateKey);
+  }
+
+  #beginDailyRun(dateKey: DailyDateKey): void {
+    this.#resetRunState();
+    this.isDailyChallenge.set(true);
+    this.activeDailyDateKey.set(dateKey);
+    this.isUnrankedRetry.set(Boolean(this.#dailyService.history()[dateKey]));
+    this.#rng = createSeededRng(dateKey);
     this.nextRound();
   }
 
@@ -138,11 +176,13 @@ export class GameService {
     this.lastRoundPoints.set(0);
     this.lastRoundMultiplier.set(1);
     this.lastRunWasNewBest.set(false);
+    this.roundOutcomes.set([]);
     this.#sequence = [];
     this.initializeGrid();
   }
 
   retryLastLevel(): void {
+    if (this.isDailyChallenge()) return;
     this.#playerInput = []; // Clear previous input
     this.selectedCount.set(0);
     this.isUnrankedRetry.set(true);
@@ -218,13 +258,13 @@ export class GameService {
 
     for (let i = 0; i < numToLight; i++) {
       if (availableTiles.length === 0) break;
-      const randomIndex = Math.floor(Math.random() * availableTiles.length);
+      const randomIndex = Math.floor(this.#rng() * availableTiles.length);
       this.#sequence.push(availableTiles.splice(randomIndex, 1)[0]);
     }
   }
 
   #expectedSequence(): readonly number[] {
-    return this.mode() === "reverse" ? [...this.#sequence].reverse() : this.#sequence;
+    return this.effectiveMode() === "reverse" ? [...this.#sequence].reverse() : this.#sequence;
   }
 
   handlePlayerTileClick(tileId: number): void {
@@ -242,7 +282,7 @@ export class GameService {
     );
     this.#soundService.playStepTone(tapIndex, "input");
 
-    if (this.mode() === "strict") {
+    if (this.effectiveMode() === "strict") {
       const expected = this.#expectedSequence();
       if (tileId !== expected[tapIndex]) {
         this.gameState.set("checking");
@@ -319,6 +359,10 @@ export class GameService {
     this.correctlyClickedTilesInSequence.update(s => s + inSequenceCount);
     this.correctlyClickedTilesNotInSequence.update(s => s + notInSequenceCount);
     this.score.update(s => s + roundPoints);
+    this.roundOutcomes.update(outcomes => [
+      ...outcomes,
+      isPerfect ? "perfect" : "partial",
+    ]);
     this.#soundService.playRoundCleared(nextStreak);
     this.gameState.set("round-cleared");
   }
@@ -327,6 +371,7 @@ export class GameService {
     this.streak.set(0);
     this.lastRoundPoints.set(0);
     this.lastRoundMultiplier.set(1);
+    this.roundOutcomes.update(outcomes => [...outcomes, "fail"]);
 
     const expected = this.#expectedSequence();
     const playerInput = this.#playerInput;
@@ -345,7 +390,22 @@ export class GameService {
       })
     );
 
-    if (!this.isUnrankedRetry()) {
+    if (this.isDailyChallenge()) {
+      const dailyDate = this.activeDailyDateKey();
+      if (!this.isUnrankedRetry() && dailyDate) {
+        this.#dailyService.recordRun({
+          date: dailyDate,
+          score: this.score(),
+          level: this.currentLevel(),
+          maxSpan: this.maxClearedSpan(),
+          bestStreak: this.bestRunStreak(),
+          inSequenceTiles: this.correctlyClickedTilesInSequence(),
+          outOfSequenceTiles: this.correctlyClickedTilesNotInSequence(),
+          roundOutcomes: this.roundOutcomes(),
+        });
+      }
+      this.lastRunWasNewBest.set(false);
+    } else if (!this.isUnrankedRetry()) {
       const { isNewBestScore } = this.#statsService.recordRun(
         {
           score: this.score(),

@@ -2,9 +2,15 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from "@a
 import { DatePipe } from "@angular/common";
 import { MatButtonModule } from "@angular/material/button";
 import { MatDialogModule, MatDialogRef } from "@angular/material/dialog";
+import { DailyRunResult, HeatmapCell } from "../../models/daily.model";
 import { GAME_MODES, GAME_MODE_CONFIGS, GameMode } from "../../models/game-mode.model";
 import { RunRecord } from "../../models/stats.model";
+import { DailyChallengeService } from "../../services/daily-challenge.service";
+import { GameService } from "../../services/game.service";
 import { StatsService } from "../../services/stats.service";
+import { formatRoundOutcomes } from "../../utils/daily-rng";
+
+export type StatsTab = GameMode | "daily";
 
 @Component({
   selector: "app-stats-dialog",
@@ -15,16 +21,38 @@ import { StatsService } from "../../services/stats.service";
 })
 export class StatsDialogComponent {
   readonly statsService = inject(StatsService);
+  readonly dailyService = inject(DailyChallengeService);
+  readonly #gameService = inject(GameService);
   readonly #dialogRef = inject(MatDialogRef<StatsDialogComponent>);
 
   readonly modes = GAME_MODES;
-  readonly selectedMode = signal<GameMode>(this.statsService.activeMode());
+  readonly selectedTab = signal<StatsTab>(
+    this.#gameService.isDailyChallenge() ? "daily" : this.statsService.activeMode()
+  );
+  readonly selectedMode = computed<GameMode>(() => {
+    const tab = this.selectedTab();
+    return tab === "daily" ? this.statsService.activeMode() : tab;
+  });
   readonly confirmingReset = signal(false);
+  readonly copyState = signal<"idle" | "copied" | "error">("idle");
 
   readonly selectedModeConfig = computed(() => GAME_MODE_CONFIGS[this.selectedMode()]);
   readonly selectedStats = computed(() =>
     this.statsService.statsForMode(this.selectedMode())()
   );
+  readonly canReset = computed(() =>
+    this.selectedTab() === "daily"
+      ? this.dailyService.hasRecordedRuns()
+      : this.selectedStats().gamesPlayed > 0
+  );
+  readonly resetTargetLabel = computed(() =>
+    this.selectedTab() === "daily" ? "Daily" : this.selectedModeConfig().shortLabel
+  );
+  readonly shareText = computed(() => this.dailyService.getShareText());
+
+  constructor() {
+    this.dailyService.refreshToday();
+  }
 
   readonly orderAccuracyPercent = computed<number | null>(() => {
     if (!this.selectedModeConfig().orderMatters) return null;
@@ -39,9 +67,28 @@ export class StatsDialogComponent {
     return orderPct === null ? null : 100 - orderPct;
   });
 
-  selectMode(mode: GameMode): void {
-    this.selectedMode.set(mode);
+  selectTab(tab: StatsTab): void {
+    this.selectedTab.set(tab);
     this.confirmingReset.set(false);
+    this.copyState.set("idle");
+  }
+
+  heatmapCellLabel(cell: HeatmapCell): string {
+    if (!cell.result) {
+      return `${cell.date}: Not played`;
+    }
+    if (cell.failed) {
+      return `${cell.date}: Level 1 (Not cleared), Score 0`;
+    }
+    return `${cell.date}: Level ${cell.result.level}, Score ${cell.result.score}`;
+  }
+
+  dailyRunStrip(run: DailyRunResult): string {
+    return formatRoundOutcomes(run.roundOutcomes) || "—";
+  }
+
+  async copyTodayResult(): Promise<void> {
+    this.copyState.set(await this.dailyService.copyShareText());
   }
 
   runOrderPercent(run: RunRecord): string {
@@ -60,7 +107,13 @@ export class StatsDialogComponent {
   }
 
   confirmReset(): void {
-    this.statsService.resetStats(this.selectedMode());
+    const tab = this.selectedTab();
+    if (tab === "daily") {
+      this.dailyService.resetDailyStats();
+      this.copyState.set("idle");
+    } else {
+      this.statsService.resetStats(tab);
+    }
     this.confirmingReset.set(false);
   }
 

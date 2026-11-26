@@ -1,6 +1,7 @@
-import {ChangeDetectionStrategy, Component, DestroyRef, effect, inject} from "@angular/core";
+import {ChangeDetectionStrategy, Component, DestroyRef, effect, inject, untracked} from "@angular/core";
 import {GAME_MODES, GameMode} from "../../models/game-mode.model";
 import {SPEED_PRESETS, SpeedPreset} from "../../models/speed-preset.model";
+import {DailyChallengeService} from "../../services/daily-challenge.service";
 import {GameService} from "../../services/game.service";
 import {SoundService} from "../../services/sound.service";
 import {StatsService} from "../../services/stats.service";
@@ -22,6 +23,7 @@ const ROUND_CLEARED_MS = 800;
 export class GameComponent {
   gameService = inject(GameService);
   statsService = inject(StatsService);
+  dailyService = inject(DailyChallengeService);
   readonly modes = GAME_MODES;
   readonly speedPresets = SPEED_PRESETS;
   readonly #soundService = inject(SoundService);
@@ -40,23 +42,27 @@ export class GameComponent {
       // Cancel any in-flight playback or transition timers whenever state changes
       const token = ++this.#playbackToken;
 
-      if (gameState === "sequence") {
-        void this.displaySequence(token);
-      } else if (gameState === "round-cleared") {
-        void this.handleRoundCleared(token);
-      } else if (gameState === "over") {
-        const dialogRef = this.dialog.open(GameOverDialogComponent, {
-          disableClose: true // Prevent closing by clicking outside or Escape key
-        });
+      untracked(() => {
+        if (gameState === "sequence") {
+          void this.displaySequence(token);
+        } else if (gameState === "round-cleared") {
+          void this.handleRoundCleared(token);
+        } else if (gameState === "over") {
+          const dialogRef = this.dialog.open(GameOverDialogComponent, {
+            disableClose: true // Prevent closing by clicking outside or Escape key
+          });
 
-        dialogRef.afterClosed().subscribe(result => {
-          if (result === 'play_again') {
-            this.gameService.startGame();
-          } else if (result === 'retry') {
-            this.gameService.retryLastLevel();
-          }
-        });
-      }
+          dialogRef.afterClosed().subscribe(result => {
+            if (result === 'play_again') {
+              this.gameService.startGame();
+            } else if (result === 'retry') {
+              this.gameService.retryLastLevel();
+            } else if (result === 'replay_daily') {
+              this.gameService.replayActiveDailyChallenge();
+            }
+          });
+        }
+      });
     });
   }
 
@@ -74,6 +80,10 @@ export class GameComponent {
 
   startGame(): void {
     this.gameService.startGame();
+  }
+
+  startDailyChallenge(): void {
+    this.gameService.startDailyChallenge();
   }
 
   retryLevel(): void {

@@ -7,91 +7,196 @@
         type="button"
         class="stats-mode-tab"
         role="tab"
-        [attr.aria-selected]="selectedMode() === mode.id"
-        [class.active]="selectedMode() === mode.id"
-        (click)="selectMode(mode.id)">
+        [attr.aria-selected]="selectedTab() === mode.id"
+        [class.active]="selectedTab() === mode.id"
+        (click)="selectTab(mode.id)">
         {{ mode.shortLabel }}
       </button>
     }
+    <button
+      type="button"
+      id="stats-tab-daily"
+      class="stats-mode-tab"
+      role="tab"
+      [attr.aria-selected]="selectedTab() === 'daily'"
+      [class.active]="selectedTab() === 'daily'"
+      (click)="selectTab('daily')">
+      Daily
+    </button>
   </div>
 
-  <div class="metrics-grid" aria-label="Personal best metrics">
-    <div class="metric-card">
-      <span class="metric-label">Best Score</span>
-      <span class="metric-value">{{ selectedStats().bestScore }}</span>
+  @if (selectedTab() === 'daily') {
+    <div class="metrics-grid daily-metrics-grid" role="group" aria-label="Daily challenge metrics">
+      <div class="metric-card">
+        <span class="metric-label">Current Streak</span>
+        <span class="metric-value">{{ dailyService.currentStreak() }}d</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-label">Best Streak</span>
+        <span class="metric-value">{{ dailyService.bestStreak() }}d</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-label">Best Daily Score</span>
+        <span class="metric-value">{{ dailyService.bestScore() }}</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-label">Days Completed</span>
+        <span class="metric-value">{{ dailyService.daysCompleted() }}</span>
+      </div>
     </div>
-    <div class="metric-card">
-      <span class="metric-label">Highest Level</span>
-      <span class="metric-value">{{ selectedStats().highestLevel }}</span>
-    </div>
-    <div class="metric-card">
-      <span class="metric-label">Max Span</span>
-      <span class="metric-value">{{ selectedStats().maxMemorySpan }}</span>
-    </div>
-    <div class="metric-card">
-      <span class="metric-label">Best Streak</span>
-      <span class="metric-value">{{ selectedStats().bestStreak }}</span>
-    </div>
-    <div class="metric-card">
-      <span class="metric-label">Order Accuracy</span>
-      <span class="metric-value">
-        @if (orderAccuracyPercent() !== null) {
-          {{ orderAccuracyPercent() }}%
-        } @else {
-          —
+
+    @if (dailyService.todayResult(); as today) {
+      <div class="daily-today-banner">
+        <span class="daily-today-summary">
+          Today ({{ today.date }}): {{ today.score }} pts &middot; Lvl {{ today.level }}
+        </span>
+        <button
+          matButton="tonal"
+          type="button"
+          id="stats-copy-daily-button"
+          (click)="copyTodayResult()">
+          {{ copyState() === 'copied' ? 'Copied!' : "Copy Today's Result" }}
+        </button>
+      </div>
+      <div class="copy-status-region" aria-live="polite">
+        @if (copyState() === 'error') {
+          <p class="copy-error-note">Clipboard unavailable. Select and copy below.</p>
+          @if (shareText(); as text) {
+            <textarea
+              class="share-fallback"
+              readonly
+              rows="3"
+              aria-label="Shareable daily result">{{ text }}</textarea>
+          }
         }
-      </span>
-    </div>
-    <div class="metric-card">
-      <span class="metric-label">Games Played</span>
-      <span class="metric-value">{{ selectedStats().gamesPlayed }}</span>
-    </div>
-  </div>
-
-  @if (orderAccuracyPercent() !== null) {
-    <p class="accuracy-breakdown">
-      Exact-order recall: {{ orderAccuracyPercent() }}% &middot; Spatial-only recall: {{ spatialOnlyPercent() }}%
-    </p>
-  }
-
-  <section class="recent-runs" aria-label="Recent runs">
-    <h2 class="section-heading">Recent Runs</h2>
-    @if (selectedStats().recentRuns.length === 0) {
-      <p class="empty-state">No ranked runs recorded yet. Finish a game to track your memory span.</p>
-    } @else {
-      <div class="runs-table-wrap">
-        <table class="runs-table">
-          <thead>
-            <tr>
-              <th scope="col">Date</th>
-              <th scope="col">Score</th>
-              <th scope="col">Lvl</th>
-              <th scope="col">Span</th>
-              <th scope="col">Order</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (run of selectedStats().recentRuns; track run.id) {
-              <tr>
-                <td class="run-date">{{ run.timestamp | date: 'MMM d, HH:mm' }}</td>
-                <td class="run-score">{{ run.score }}</td>
-                <td>{{ run.level }}</td>
-                <td>{{ run.maxSpan }}</td>
-                <td>{{ runOrderPercent(run) }}</td>
-              </tr>
-            }
-          </tbody>
-        </table>
       </div>
     }
-  </section>
+
+    <section class="heatmap-section" aria-label="12-week daily heatmap">
+      <h2 class="section-heading">Last 12 Weeks</h2>
+      <div class="heatmap-grid" role="list" aria-label="Daily challenge activity heatmap">
+        @for (cell of dailyService.heatmapCells(); track cell.date) {
+          <span
+            class="heatmap-cell level-{{ cell.intensity }}"
+            role="listitem"
+            [class.is-failed]="cell.failed"
+            [class.is-today]="cell.isToday"
+            [title]="heatmapCellLabel(cell)"
+            [attr.aria-label]="heatmapCellLabel(cell)"></span>
+        }
+      </div>
+    </section>
+
+    <section class="recent-runs" aria-label="Recent daily runs">
+      <h2 class="section-heading">Recent Daily Runs</h2>
+      @if (dailyService.recentRuns().length === 0) {
+        <p class="empty-state">No daily challenges played yet.</p>
+      } @else {
+        <div class="runs-table-wrap">
+          <table class="runs-table">
+            <thead>
+              <tr>
+                <th scope="col">Date</th>
+                <th scope="col">Score</th>
+                <th scope="col">Lvl</th>
+                <th scope="col">Span</th>
+                <th scope="col">Rounds</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (run of dailyService.recentRuns(); track run.date) {
+                <tr>
+                  <td class="run-date">{{ run.date }}</td>
+                  <td class="run-score">{{ run.score }}</td>
+                  <td>{{ run.level }}</td>
+                  <td>{{ run.maxSpan }}</td>
+                  <td class="daily-strip-cell">{{ dailyRunStrip(run) }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+  } @else {
+    <div class="metrics-grid" role="group" aria-label="Personal best metrics">
+      <div class="metric-card">
+        <span class="metric-label">Best Score</span>
+        <span class="metric-value">{{ selectedStats().bestScore }}</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-label">Highest Level</span>
+        <span class="metric-value">{{ selectedStats().highestLevel }}</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-label">Max Span</span>
+        <span class="metric-value">{{ selectedStats().maxMemorySpan }}</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-label">Best Streak</span>
+        <span class="metric-value">{{ selectedStats().bestStreak }}</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-label">Order Accuracy</span>
+        <span class="metric-value">
+          @if (orderAccuracyPercent() !== null) {
+            {{ orderAccuracyPercent() }}%
+          } @else {
+            —
+          }
+        </span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-label">Games Played</span>
+        <span class="metric-value">{{ selectedStats().gamesPlayed }}</span>
+      </div>
+    </div>
+
+    @if (orderAccuracyPercent() !== null) {
+      <p class="accuracy-breakdown">
+        Exact-order recall: {{ orderAccuracyPercent() }}% &middot; Spatial-only recall: {{ spatialOnlyPercent() }}%
+      </p>
+    }
+
+    <section class="recent-runs" aria-label="Recent runs">
+      <h2 class="section-heading">Recent Runs</h2>
+      @if (selectedStats().recentRuns.length === 0) {
+        <p class="empty-state">No ranked runs recorded yet. Finish a game to track your memory span.</p>
+      } @else {
+        <div class="runs-table-wrap">
+          <table class="runs-table">
+            <thead>
+              <tr>
+                <th scope="col">Date</th>
+                <th scope="col">Score</th>
+                <th scope="col">Lvl</th>
+                <th scope="col">Span</th>
+                <th scope="col">Order</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (run of selectedStats().recentRuns; track run.id) {
+                <tr>
+                  <td class="run-date">{{ run.timestamp | date: 'MMM d, HH:mm' }}</td>
+                  <td class="run-score">{{ run.score }}</td>
+                  <td>{{ run.level }}</td>
+                  <td>{{ run.maxSpan }}</td>
+                  <td>{{ runOrderPercent(run) }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+  }
 </div>
 
 <div mat-dialog-actions class="stats-dialog-actions">
-  @if (selectedStats().gamesPlayed > 0) {
+  @if (canReset()) {
     @if (confirmingReset()) {
       <div class="reset-confirm">
-        <span class="reset-prompt">Clear {{ selectedModeConfig().shortLabel }} stats?</span>
+        <span class="reset-prompt">Clear {{ resetTargetLabel() }} stats?</span>
         <button matButton type="button" (click)="cancelReset()">Cancel</button>
         <button matButton="filled" type="button" id="confirm-reset-stats" class="confirm-reset-btn" (click)="confirmReset()">
           Confirm Reset

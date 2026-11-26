@@ -10,7 +10,7 @@
     </div>
     <div class="stat-item">
       <span class="stat-label">Best</span>
-      <span class="stat-value">{{ statsService.bestScore() }}</span>
+      <span class="stat-value">{{ gameService.isDailyChallenge() ? dailyService.bestScore() : statsService.bestScore() }}</span>
     </div>
     <div class="stat-item">
       <span class="stat-label">Tiles</span>
@@ -18,8 +18,11 @@
     </div>
   </div>
 
-  @if (gameService.streak() > 0 || gameService.isUnrankedRetry()) {
-    <div class="badges-row" aria-label="Active run badges">
+  @if (gameService.streak() > 0 || gameService.isUnrankedRetry() || gameService.isDailyChallenge()) {
+    <div class="badges-row" role="group" aria-label="Active run badges">
+      @if (gameService.isDailyChallenge()) {
+        <span class="daily-badge">Daily {{ gameService.activeDailyDateKey() }}</span>
+      }
       @if (gameService.streak() > 0) {
         <span class="streak-badge" [class.has-multiplier]="gameService.currentMultiplier() > 1">
           Streak {{ gameService.streak() }}
@@ -29,7 +32,7 @@
         </span>
       }
       @if (gameService.isUnrankedRetry()) {
-        <span class="unranked-badge">Unranked Retry</span>
+        <span class="unranked-badge">{{ gameService.isDailyChallenge() ? 'Unranked Replay' : 'Unranked Retry' }}</span>
       }
     </div>
   }
@@ -83,7 +86,20 @@
       <button matButton="elevated" (click)="startGame()">
         Start Game
       </button>
-      @if (gameService.gameState() === 'over') {
+      <button
+        matButton="tonal"
+        id="daily-challenge-button"
+        type="button"
+        (click)="startDailyChallenge()">
+        @if (dailyService.hasCompletedToday()) {
+          Daily Done ({{ dailyService.todayResult()?.score }})
+        } @else if (dailyService.currentStreak() > 0) {
+          Daily Challenge ({{ dailyService.currentStreak() }}d)
+        } @else {
+          Daily Challenge
+        }
+      </button>
+      @if (gameService.gameState() === 'over' && !gameService.isDailyChallenge()) {
         <button matButton="tonal" (click)="retryLevel()">
           Retry Level
         </button>

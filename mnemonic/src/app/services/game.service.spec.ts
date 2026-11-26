@@ -7,6 +7,7 @@ import {
   streakMultiplier,
 } from "./game.service";
 import { computePlaybackTimings } from "../models/speed-preset.model";
+import { DAILY_STORAGE_KEY_V1, DailyChallengeService } from "./daily-challenge.service";
 import { SoundService } from "./sound.service";
 import { STATS_STORAGE_KEY, STATS_STORAGE_KEY_V2, StatsService } from "./stats.service";
 
@@ -14,24 +15,34 @@ describe("GameService", () => {
   let service: GameService;
   let statsService: StatsService;
   let soundService: SoundService;
+  let dailyService: DailyChallengeService;
 
   beforeEach(() => {
     localStorage.removeItem(STATS_STORAGE_KEY);
     localStorage.removeItem(STATS_STORAGE_KEY_V2);
+    localStorage.removeItem(DAILY_STORAGE_KEY_V1);
     localStorage.removeItem("mnemonic:muted");
     localStorage.removeItem(SPEED_PRESET_STORAGE_KEY);
     localStorage.removeItem(PROGRESSIVE_SPEED_STORAGE_KEY);
     TestBed.configureTestingModule({
-      providers: [provideZonelessChangeDetection(), GameService, StatsService, SoundService],
+      providers: [
+        provideZonelessChangeDetection(),
+        GameService,
+        StatsService,
+        SoundService,
+        DailyChallengeService,
+      ],
     });
     service = TestBed.inject(GameService);
     statsService = TestBed.inject(StatsService);
     soundService = TestBed.inject(SoundService);
+    dailyService = TestBed.inject(DailyChallengeService);
   });
 
   afterEach(() => {
     localStorage.removeItem(STATS_STORAGE_KEY);
     localStorage.removeItem(STATS_STORAGE_KEY_V2);
+    localStorage.removeItem(DAILY_STORAGE_KEY_V1);
     localStorage.removeItem("mnemonic:muted");
     localStorage.removeItem(SPEED_PRESET_STORAGE_KEY);
     localStorage.removeItem(PROGRESSIVE_SPEED_STORAGE_KEY);
@@ -473,6 +484,172 @@ describe("GameService", () => {
       expect(level1).toEqual({ tileLitMs: 700, tileGapMs: 300, allLitMs: 1000 });
       expect(level5).toEqual({ tileLitMs: 560, tileGapMs: 240, allLitMs: 800 });
       expect(level50).toEqual({ tileLitMs: 248, tileGapMs: 100, allLitMs: 358 });
+    });
+  });
+
+  describe("Daily Challenge", () => {
+    it("produces deterministic sequences for the same date and diverges for other dates", () => {
+      const dateA = new Date(2026, 10, 26, 9, 0);
+      const dateB = new Date(2026, 10, 27, 9, 0);
+
+      service.startDailyChallenge(dateA);
+      const run1Lvl1 = [...service.getSequence()];
+      service.gameState.set("input");
+      run1Lvl1.forEach(id => service.handlePlayerTileClick(id));
+      service.advanceToNextRound();
+      const run1Lvl2 = [...service.getSequence()];
+
+      service.startDailyChallenge(dateA);
+      const run2Lvl1 = [...service.getSequence()];
+      service.gameState.set("input");
+      run2Lvl1.forEach(id => service.handlePlayerTileClick(id));
+      service.advanceToNextRound();
+      const run2Lvl2 = [...service.getSequence()];
+
+      expect(run2Lvl1).toEqual(run1Lvl1);
+      expect(run2Lvl2).toEqual(run1Lvl2);
+
+      service.startDailyChallenge(dateB);
+      const nextDayLvl1 = [...service.getSequence()];
+      expect(nextDayLvl1).not.toEqual(run1Lvl1);
+    });
+
+    it("forces Classic rules and Normal non-progressive timings without overwriting saved preferences", () => {
+      service.setMode("reverse");
+      service.setSpeedPreset("speed");
+      service.setProgressiveSpeed(true);
+
+      service.startDailyChallenge(new Date(2026, 10, 26, 9, 0));
+      expect(service.isDailyChallenge()).toBeTrue();
+      expect(service.effectiveMode()).toBe("classic");
+      expect(service.modeConfig().id).toBe("classic");
+      expect(service.playbackTimings()).toEqual({
+        tileLitMs: 700,
+        tileGapMs: 300,
+        allLitMs: 1000,
+      });
+
+      // Clearing in forward Classic order works even though user's saved mode is reverse
+      const seq = [...service.getSequence()];
+      service.gameState.set("input");
+      seq.forEach(id => service.handlePlayerTileClick(id));
+      expect(service.gameState()).toBe("round-cleared");
+      expect(service.roundOutcomes()).toEqual(["perfect"]);
+
+      // Advance to Level 2: timings must stay Normal non-progressive (700/300/1000)
+      service.advanceToNextRound();
+      expect(service.currentLevel()).toBe(2);
+      expect(service.playbackTimings()).toEqual({
+        tileLitMs: 700,
+        tileGapMs: 300,
+        allLitMs: 1000,
+      });
+
+      // Returning to standard game restores user's saved mode and speed preferences
+      service.startGame();
+      expect(service.isDailyChallenge()).toBeFalse();
+      expect(service.mode()).toBe("reverse");
+      expect(service.effectiveMode()).toBe("reverse");
+      expect(service.speedPreset()).toBe("speed");
+      expect(service.progressiveSpeed()).toBeTrue();
+    });
+
+    it("records scored Daily runs into DailyChallengeService only, locks on Level 1 fail, and keeps replays unranked", () => {
+      const date = new Date(2026, 10, 26, 12, 0);
+      service.startDailyChallenge(date);
+      expect(service.isUnrankedRetry()).toBeFalse();
+
+      // Fail Level 1 immediately
+      const seq1 = [...service.getSequence()];
+      const wrong1 = service.tiles().find(t => !seq1.includes(t.id))!;
+      service.gameState.set("input");
+      seq1.slice(0, seq1.length - 1).forEach(id => service.handlePlayerTileClick(id));
+      service.handlePlayerTileClick(wrong1.id);
+
+      expect(service.gameState()).toBe("over");
+      expect(statsService.gamesPlayed()).toBe(0);
+      expect(dailyService.hasCompletedToday()).toBeTrue();
+      expect(dailyService.todayResult()?.score).toBe(0);
+      expect(dailyService.todayResult()?.maxSpan).toBe(0);
+      expect(dailyService.todayResult()?.roundOutcomes).toEqual(["fail"]);
+      expect(dailyService.currentStreak()).toBe(0);
+
+      // Second attempt on the same day is unranked and does not overwrite locked result
+      service.startDailyChallenge(date);
+      expect(service.isUnrankedRetry()).toBeTrue();
+      const replaySeq1 = [...service.getSequence()];
+      expect(replaySeq1).toEqual(seq1);
+
+      service.gameState.set("input");
+      replaySeq1.forEach(id => service.handlePlayerTileClick(id));
+      expect(service.gameState()).toBe("round-cleared");
+      service.advanceToNextRound();
+
+      service.gameState.set("input");
+      const replaySeq2 = [...service.getSequence()];
+      const wrong2 = service.tiles().find(t => !replaySeq2.includes(t.id))!;
+      replaySeq2.slice(0, replaySeq2.length - 1).forEach(id => service.handlePlayerTileClick(id));
+      service.handlePlayerTileClick(wrong2.id);
+
+      expect(service.gameState()).toBe("over");
+      expect(statsService.gamesPlayed()).toBe(0);
+      expect(dailyService.todayResult()?.score).toBe(0);
+      expect(dailyService.todayResult()?.roundOutcomes).toEqual(["fail"]);
+    });
+
+    it("records multi-round Daily runs with roundOutcomes and increments streak", () => {
+      const date = new Date(2026, 10, 26, 12, 0);
+      service.startDailyChallenge(date);
+
+      // Round 1: perfect
+      const seq1 = [...service.getSequence()];
+      service.gameState.set("input");
+      seq1.forEach(id => service.handlePlayerTileClick(id));
+      service.advanceToNextRound();
+
+      // Round 2: partial (rotated order)
+      const seq2 = [...service.getSequence()];
+      service.gameState.set("input");
+      [seq2[1], seq2[2], seq2[3], seq2[0]].forEach(id => service.handlePlayerTileClick(id));
+      service.advanceToNextRound();
+
+      // Round 3: fail
+      const seq3 = [...service.getSequence()];
+      const wrong3 = service.tiles().find(t => !seq3.includes(t.id))!;
+      service.gameState.set("input");
+      seq3.slice(0, seq3.length - 1).forEach(id => service.handlePlayerTileClick(id));
+      service.handlePlayerTileClick(wrong3.id);
+
+      expect(dailyService.currentStreak()).toBe(1);
+      expect(dailyService.todayResult()?.roundOutcomes).toEqual(["perfect", "partial", "fail"]);
+      expect(dailyService.todayResult()?.score).toBe(10);
+      expect(dailyService.todayResult()?.maxSpan).toBe(4);
+      expect(statsService.statsForMode("classic")().gamesPlayed).toBe(0);
+    });
+
+    it("ignores retryLastLevel in Daily Challenge and pins replayActiveDailyChallenge across midnight", () => {
+      const day1 = new Date(2026, 10, 26, 23, 58);
+      const day2 = new Date(2026, 10, 27, 0, 2);
+
+      service.startDailyChallenge(day1);
+      const day1Seq = [...service.getSequence()];
+      const wrong1 = service.tiles().find(t => !day1Seq.includes(t.id))!;
+      service.gameState.set("input");
+      day1Seq.slice(0, day1Seq.length - 1).forEach(id => service.handlePlayerTileClick(id));
+      service.handlePlayerTileClick(wrong1.id);
+      expect(service.gameState()).toBe("over");
+
+      // retryLastLevel must be a no-op during Daily Challenge
+      service.retryLastLevel();
+      expect(service.gameState()).toBe("over");
+
+      // Clock advances past midnight; replayActiveDailyChallenge stays pinned to day1 and unranked
+      dailyService.refreshToday(day2);
+      service.replayActiveDailyChallenge();
+      expect(service.activeDailyDateKey()).toBe("2026-11-26");
+      expect(service.isUnrankedRetry()).toBeTrue();
+      expect([...service.getSequence()]).toEqual(day1Seq);
+      expect(dailyService.history()["2026-11-27"]).toBeUndefined();
     });
   });
 });
