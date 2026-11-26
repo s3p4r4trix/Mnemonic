@@ -1,0 +1,31 @@
+name: Delayed Dependabot Auto-Merge
+
+on:
+  schedule:
+    - cron: "0 * * * *" # Runs every hour
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  auto-merge-aged-prs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Approve and enable auto-merge for aged Dependabot PRs
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          MIN_AGE_HOURS: 24
+        run: |
+          gh api "repos/${REPO}/pulls?state=open&per_page=50" \
+            --jq --argjson min_hours "$MIN_AGE_HOURS" '
+              .[]
+              | select(.user.login == "dependabot[bot]")
+              | select((now - (.created_at | fromdateiso8601)) >= ($min_hours * 3600))
+              | .number
+            ' | while read -r pr_number; do
+            echo "Processing Dependabot PR #${pr_number}..."
+            gh pr review "$pr_number" --repo "$REPO" --approve || true
+            gh pr merge "$pr_number" --repo "$REPO" --auto --squash
+          done
