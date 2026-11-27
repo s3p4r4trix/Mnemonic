@@ -1,4 +1,4 @@
-import {computed, DestroyRef, inject, Injectable, signal} from "@angular/core";
+import {computed, inject, Injectable, signal} from "@angular/core";
 import {DailyDateKey, RoundOutcome} from '../models/daily.model';
 import {GAME_MODE_CONFIGS, GameMode} from '../models/game-mode.model';
 import {computePlaybackTimings, isSpeedPreset, SpeedPreset} from '../models/speed-preset.model';
@@ -22,7 +22,6 @@ export function streakMultiplier(streak: number): number {
   providedIn: "root",
 })
 export class GameService {
-  readonly #destroyRef = inject(DestroyRef);
   readonly #dailyService = inject(DailyChallengeService);
   readonly #soundService = inject(SoundService);
   readonly #statsService = inject(StatsService);
@@ -60,24 +59,8 @@ export class GameService {
   roundOutcomes = signal<readonly RoundOutcome[]>([]);
   currentMultiplier = computed(() => streakMultiplier(this.streak()));
 
-  // Viewport & Grid Configuration
-  readonly #viewport = signal({
-    width: typeof window !== "undefined" ? window.innerWidth : 1024,
-    height: typeof window !== "undefined" ? window.innerHeight : 768,
-  });
+  // Grid Configuration
   gridSize = signal(3); // Initial grid size (3x3)
-  tileSize = computed(() => {
-    const { width, height } = this.#viewport();
-    const size = this.gridSize();
-    const availableWidth = Math.max(0, width - 64);
-    const availableHeight = Math.max(0, height - 300);
-    const maxBoardSize = Math.min(availableWidth, availableHeight);
-    const gapBudget = Math.max(0, size - 1) * 6;
-    const calculatedSize = Math.floor((maxBoardSize - gapBudget) / size);
-
-    // Enforce minimum (40) and maximum (80) tile size
-    return Math.max(40, Math.min(calculatedSize, 80));
-  });
   tiles = signal<Tile[]>([]);
   numTilesToLight = signal(3); // Initial number of tiles to light
 
@@ -88,20 +71,6 @@ export class GameService {
 
   constructor() {
     this.initializeGrid();
-
-    if (typeof window !== "undefined") {
-      const onResize = () => {
-        this.updateViewport(window.innerWidth, window.innerHeight);
-      };
-      window.addEventListener("resize", onResize);
-      this.#destroyRef.onDestroy(() => {
-        window.removeEventListener("resize", onResize);
-      });
-    }
-  }
-
-  updateViewport(width: number, height: number): void {
-    this.#viewport.set({ width, height });
   }
 
   initializeGrid(): void {

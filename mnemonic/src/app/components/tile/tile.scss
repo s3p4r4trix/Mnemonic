@@ -1,11 +1,19 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+
 .tile {
   position: relative;
+  width: 100%;
+  min-width: 0;
+  aspect-ratio: 1;
   padding: 0;
   font: inherit;
   background-color: var(--game-tile-idle-bg);
   color: var(--mat-sys-on-surface);
   border: 1px solid var(--game-tile-idle-border);
-  border-radius: 10px;
+  border-radius: var(--tile-radius, 10px);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -86,7 +94,7 @@
 }
 
 .tile-order {
-  font-size: 1.05rem;
+  font-size: var(--tile-order-size, 1.05rem);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   line-height: 1;
@@ -105,11 +113,11 @@
   position: absolute;
   top: 3px;
   right: 5px;
-  font-size: 0.72rem;
+  font-size: var(--tile-badge-hit-size, 0.72rem);
 }
 
 .tile-badge-miss {
-  font-size: 1.35rem;
+  font-size: var(--tile-badge-miss-size, 1.35rem);
 }
 
 @media (prefers-reduced-motion: reduce) {

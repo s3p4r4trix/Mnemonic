@@ -10,8 +10,6 @@ import {Tile} from '../../models/tile.model';
       type="button"
       class="tile"
       [attr.data-tile-id]="tile().id"
-      [style.width.px]="tileSize()"
-      [style.height.px]="tileSize()"
       [class.interactive]="gameService.gameState() === 'input'"
       [class.lit]="tile().lit && gameService.gameState() !== 'over'"
       [class.selected-by-player]="tile().selectedByPlayer && gameService.gameState() !== 'over'"
@@ -42,7 +40,6 @@ export class TileComponent {
   gameService = inject(GameService);
 
   tile = input.required<Tile>();
-  tileSize = computed(() => this.gameService.tileSize());
   tileClicked = output<number>();
 
   readonly ariaLabel = computed(() => {
