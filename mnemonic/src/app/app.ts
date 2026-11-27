@@ -51,7 +51,9 @@ export class App implements OnInit {
 
   openStats(): void {
     this.#dialog.open(StatsDialogComponent, {
-      maxWidth: '92vw',
+      panelClass: 'app-dialog-panel',
+      maxWidth: 'min(92vw, 480px)',
+      maxHeight: '92dvh',
     });
   }
 

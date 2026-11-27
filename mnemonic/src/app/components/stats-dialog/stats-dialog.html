@@ -76,15 +76,28 @@
       <h2 class="section-heading">Last 12 Weeks</h2>
       <div class="heatmap-grid" role="list" aria-label="Daily challenge activity heatmap">
         @for (cell of dailyService.heatmapCells(); track cell.date) {
-          <span
-            class="heatmap-cell level-{{ cell.intensity }}"
-            role="listitem"
-            [class.is-failed]="cell.failed"
-            [class.is-today]="cell.isToday"
-            [title]="heatmapCellLabel(cell)"
-            [attr.aria-label]="heatmapCellLabel(cell)"></span>
+          <div class="heatmap-item" role="listitem">
+            <button
+              type="button"
+              class="heatmap-cell level-{{ cell.intensity }}"
+              [class.is-failed]="cell.failed"
+              [class.is-today]="cell.isToday"
+              [class.is-selected]="selectedHeatmapCell()?.date === cell.date"
+              [attr.tabindex]="selectedHeatmapCell()?.date === cell.date ? 0 : -1"
+              [attr.aria-pressed]="selectedHeatmapCell()?.date === cell.date"
+              [title]="heatmapCellLabel(cell)"
+              [attr.aria-label]="heatmapCellLabel(cell)"
+              (click)="selectHeatmapCell(cell.date)"
+              (keydown)="onHeatmapKeydown($event, $index)">
+            </button>
+          </div>
         }
       </div>
+      @if (selectedHeatmapCell(); as activeCell) {
+        <p class="heatmap-detail" aria-live="polite">
+          {{ heatmapDetailText(activeCell) }}@if (heatmapDetailStrip(activeCell); as strip) { <span aria-hidden="true">{{ strip }}</span> }
+        </p>
+      }
     </section>
 
     <section class="recent-runs" aria-label="Recent daily runs">

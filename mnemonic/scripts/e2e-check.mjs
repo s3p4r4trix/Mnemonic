@@ -10,437 +10,35 @@
  *   node scripts/e2e-check.mjs --screenshots-dir ./tmp-shots
  */
 import assert from 'node:assert/strict';
-import { spawn, spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { createServer } from 'node:http';
-import { extname, join, resolve } from 'node:path';
+import { spawn } from 'node:child_process';
+import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+  CdpClient,
+  findChromeBinary,
+  parseArgs,
+  pickFreePort,
+  sleep,
+  startStaticServer,
+  waitForCdp,
+  waitForHttp,
+  waitForMessage,
+} from './e2e/cdp.mjs';
+import { verifyDailyChallengeAndReducedMotion } from './e2e/daily.mjs';
+import {
+  verifyModalAcrossViewports,
+  verifyResponsiveGameOverReview,
+  verifyResponsiveGameplay,
+  verifyResponsiveIdle,
+} from './e2e/responsive.mjs';
+import {
+  contrastRatio,
+  measureSettledLitTile,
+  verifyIdleThemeContrast,
+} from './e2e/theme.mjs';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const DOCS_DIR = resolve(__dirname, '../../docs');
-
-const MIME_TYPES = {
-  '.html': 'text/html; charset=utf-8',
-  '.js': 'text/javascript; charset=utf-8',
-  '.css': 'text/css; charset=utf-8',
-  '.ico': 'image/x-icon',
-  '.png': 'image/png',
-  '.svg': 'image/svg+xml',
-  '.webp': 'image/webp',
-  '.json': 'application/json; charset=utf-8',
-};
-
-function parseArgs(argv) {
-  let url = null;
-  let screenshotsDir = null;
-  for (let i = 0; i < argv.length; i++) {
-    if (argv[i] === '--url' && argv[i + 1]) url = argv[++i];
-    else if (argv[i] === '--screenshots-dir' && argv[i + 1]) screenshotsDir = argv[++i];
-  }
-  return { url, screenshotsDir };
-}
-
-function findChromeBinary() {
-  if (process.env.CHROME_BIN) return process.env.CHROME_BIN;
-  const candidates = [
-    'google-chrome',
-    'google-chrome-stable',
-    'chromium',
-    'chromium-browser',
-  ];
-  for (const bin of candidates) {
-    if (spawnSync('which', [bin], { stdio: 'ignore' }).status === 0) {
-      return bin;
-    }
-  }
-  return candidates[0];
-}
-
-function startStaticServer(rootDir) {
-  if (!existsSync(join(rootDir, 'index.html'))) {
-    throw new Error(`Built app not found at ${rootDir}. Run "npm run build" first or pass --url.`);
-  }
-  return new Promise((resolveServer, reject) => {
-    const server = createServer((req, res) => {
-      const cleanPath = (req.url || '/').split('?')[0];
-      const relPath = cleanPath === '/' ? 'index.html' : cleanPath.replace(/^\/+/, '');
-      const fullPath = resolve(rootDir, relPath);
-      if (!fullPath.startsWith(rootDir) || !existsSync(fullPath)) {
-        res.writeHead(404);
-        res.end('Not found');
-        return;
-      }
-      const ext = extname(fullPath);
-      res.writeHead(200, { 'Content-Type': MIME_TYPES[ext] || 'application/octet-stream' });
-      res.end(readFileSync(fullPath));
-    });
-    server.on('error', reject);
-    server.listen(0, '127.0.0.1', () => {
-      const addr = server.address();
-      resolveServer({ server, url: `http://127.0.0.1:${addr.port}/` });
-    });
-  });
-}
-
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-
-async function waitForHttp(url, timeoutMs = 15000) {
-  const start = Date.now();
-  while (Date.now() - start < timeoutMs) {
-    try {
-      const res = await fetch(url);
-      if (res.ok) return;
-    } catch {}
-    await sleep(200);
-  }
-  throw new Error(`Timed out waiting for ${url}`);
-}
-
-async function waitForCdp(port, timeoutMs = 15000) {
-  const start = Date.now();
-  while (Date.now() - start < timeoutMs) {
-    try {
-      const res = await fetch(`http://127.0.0.1:${port}/json/list`);
-      const targets = await res.json();
-      const page = targets.find((t) => t.type === 'page' && t.webSocketDebuggerUrl);
-      if (page) return page.webSocketDebuggerUrl;
-    } catch {}
-    await sleep(200);
-  }
-  throw new Error(`Chrome DevTools Protocol did not open on port ${port}`);
-}
-
-async function pickFreePort() {
-  return new Promise((resolvePort, reject) => {
-    const srv = createServer();
-    srv.on('error', reject);
-    srv.listen(0, '127.0.0.1', () => {
-      const { port } = srv.address();
-      srv.close(() => resolvePort(port));
-    });
-  });
-}
-
-class CdpClient {
-  constructor(ws) {
-    this.ws = ws;
-    this.nextId = 0;
-    this.pending = new Map();
-    this.consoleErrors = [];
-    ws.addEventListener('message', (event) => {
-      const msg = JSON.parse(event.data);
-      if (msg.id && this.pending.has(msg.id)) {
-        const { resolve, reject } = this.pending.get(msg.id);
-        this.pending.delete(msg.id);
-        if (msg.error) reject(new Error(msg.error.message));
-        else resolve(msg.result);
-      } else if (msg.method === 'Runtime.exceptionThrown') {
-        this.consoleErrors.push(msg.params.exceptionDetails.text);
-      }
-    });
-  }
-
-  send(method, params = {}) {
-    const id = ++this.nextId;
-    return new Promise((resolve, reject) => {
-      this.pending.set(id, { resolve, reject });
-      this.ws.send(JSON.stringify({ id, method, params }));
-    });
-  }
-
-  async eval(expression) {
-    const res = await this.send('Runtime.evaluate', {
-      expression,
-      returnByValue: true,
-      awaitPromise: true,
-    });
-    if (res.exceptionDetails) {
-      throw new Error(res.exceptionDetails.text || 'Runtime evaluation error');
-    }
-    return res.result.value;
-  }
-
-  async screenshot(dir, filename) {
-    if (!dir) return;
-    mkdirSync(dir, { recursive: true });
-    const { data } = await this.send('Page.captureScreenshot', { format: 'png' });
-    writeFileSync(join(dir, filename), Buffer.from(data, 'base64'));
-  }
-}
-
-async function waitForMessage(cdp, expectedSubstring, timeoutMs = 15000) {
-  const start = Date.now();
-  while (Date.now() - start < timeoutMs) {
-    const msg = await cdp.eval(`document.querySelector('.message')?.textContent?.trim() || ''`);
-    if (msg.includes(expectedSubstring)) return msg;
-    await sleep(150);
-  }
-  throw new Error(`Timed out waiting for status message containing "${expectedSubstring}"`);
-}
-
-function parseRgbString(str) {
-  const match = str && str.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
-  if (!match) return null;
-  return {
-    r: Number(match[1]),
-    g: Number(match[2]),
-    b: Number(match[3]),
-    a: match[4] === undefined ? 1 : Number(match[4]),
-  };
-}
-
-function relativeLuminance({ r, g, b }) {
-  const toLinear = (channel) => {
-    const c = channel / 255;
-    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
-  };
-  return 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
-}
-
-function contrastRatio(rgbA, rgbB) {
-  const c1 = typeof rgbA === 'string' ? parseRgbString(rgbA) : rgbA;
-  const c2 = typeof rgbB === 'string' ? parseRgbString(rgbB) : rgbB;
-  assert.ok(c1 && c2, `Invalid RGB colors for contrast check: "${rgbA}" vs "${rgbB}"`);
-  const l1 = relativeLuminance(c1);
-  const l2 = relativeLuminance(c2);
-  return Number(((Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05)).toFixed(2));
-}
-
-async function verifyIdleThemeContrast(cdp, expectedMode) {
-  const expectedMeta = expectedMode === 'dark' ? '#11101a' : '#f8f7fc';
-  const snapshot = await cdp.eval(`(() => {
-    function parse(str) {
-      const m = str && str.match(/rgba?\\((\\d+),\\s*(\\d+),\\s*(\\d+)(?:,\\s*([\\d.]+))?\\)/);
-      return m ? { r: +m[1], g: +m[2], b: +m[3], a: m[4] === undefined ? 1 : +m[4] } : null;
-    }
-    function blend(fg, bg) {
-      const a = fg.a;
-      return {
-        r: Math.round(fg.r * a + bg.r * (1 - a)),
-        g: Math.round(fg.g * a + bg.g * (1 - a)),
-        b: Math.round(fg.b * a + bg.b * (1 - a)),
-        a: 1,
-      };
-    }
-    function effectiveBg(el) {
-      const layers = [];
-      let cur = el;
-      while (cur && cur.nodeType === 1) {
-        const bg = parse(getComputedStyle(cur).backgroundColor);
-        if (bg && bg.a > 0) layers.push(bg);
-        cur = cur.parentElement;
-      }
-      let out = { r: 255, g: 255, b: 255, a: 1 };
-      for (let i = layers.length - 1; i >= 0; i--) {
-        out = layers[i].a >= 0.99 ? layers[i] : blend(layers[i], out);
-      }
-      return 'rgb(' + out.r + ', ' + out.g + ', ' + out.b + ')';
-    }
-    const selectors = [
-      '.app-title',
-      '.stat-value',
-      '.mode-pill.active',
-      '.mode-pill:not(.active)',
-      '.game-actions button:first-child',
-      '#daily-challenge-button',
-    ];
-    return {
-      colorScheme: getComputedStyle(document.documentElement).colorScheme,
-      themeMeta: document.querySelector('meta[name="theme-color"]')?.getAttribute('content') || '',
-      bodyBg: getComputedStyle(document.body).backgroundColor,
-      progressiveBorder: getComputedStyle(document.querySelector('button.progressive-toggle')).borderTopColor,
-      textProbes: selectors.map((sel) => {
-        const el = document.querySelector(sel);
-        return el
-          ? { sel, fg: getComputedStyle(el).color, bg: effectiveBg(el) }
-          : { sel, fg: null, bg: null };
-      }),
-    };
-  })()`);
-
-  assert.equal(snapshot.colorScheme, expectedMode, `Expected html colorScheme=${expectedMode}`);
-  assert.equal(snapshot.themeMeta, expectedMeta, `Expected meta[name="theme-color"]=${expectedMeta}`);
-
-  const ratios = {};
-  for (const probe of snapshot.textProbes) {
-    assert.ok(probe.fg && probe.bg, `Missing element for contrast probe: ${probe.sel}`);
-    const cr = contrastRatio(probe.fg, probe.bg);
-    ratios[probe.sel] = cr;
-    assert.ok(cr >= 4.5, `${expectedMode} text contrast for ${probe.sel} was ${cr}:1 (< 4.5:1)`);
-  }
-
-  const toggleBorderCr = contrastRatio(snapshot.progressiveBorder, snapshot.bodyBg);
-  ratios['.progressive-toggle:border'] = toggleBorderCr;
-  assert.ok(
-    toggleBorderCr >= 3.0,
-    `${expectedMode} .progressive-toggle border contrast was ${toggleBorderCr}:1 (< 3.0:1)`
-  );
-
-  return ratios;
-}
-
-async function measureSettledLitTile(cdp, settleMs = 250) {
-  for (let attempt = 0; attempt < 3; attempt++) {
-    let sawLit = false;
-    for (let i = 0; i < 60; i++) {
-      if (await cdp.eval(`Boolean(document.querySelector('button.tile.lit'))`)) {
-        sawLit = true;
-        break;
-      }
-      await sleep(30);
-    }
-    assert.ok(sawLit, 'Timed out waiting for a lit tile during playback');
-    await sleep(settleMs);
-    const probe = await cdp.eval(`(() => {
-      const lit = document.querySelector('button.tile.lit');
-      const idle = document.querySelector('button.tile:not(.lit):not(.selected-by-player)');
-      const grid = document.querySelector('.grid-container');
-      if (!lit || !idle || !grid) return null;
-      return {
-        litBg: getComputedStyle(lit).backgroundColor,
-        idleBg: getComputedStyle(idle).backgroundColor,
-        gridBg: getComputedStyle(grid).backgroundColor,
-      };
-    })()`);
-    if (probe) return probe;
-  }
-  throw new Error('Could not sample a settled lit tile before it turned off');
-}
-
-async function setViewport(cdp, width, height, mobile) {
-  await cdp.send('Emulation.setDeviceMetricsOverride', {
-    width,
-    height,
-    deviceScaleFactor: mobile ? 2 : 1,
-    mobile,
-  });
-  await sleep(120);
-}
-
-async function verifyResponsiveIdle(cdp, screenshotsDir) {
-  const results = {};
-  const specs = [
-    { key: 'mobile320', width: 320, height: 568, mobile: true, shot: '7_idle_320.png' },
-    { key: 'landscape667', width: 667, height: 375, mobile: true, shot: '8_idle_landscape_667.png' },
-    { key: 'desktop1440', width: 1440, height: 900, mobile: false, shot: '9_idle_desktop_1440.png' },
-  ];
-
-  for (const vp of specs) {
-    await setViewport(cdp, vp.width, vp.height, vp.mobile);
-    const m = await cdp.eval(`(() => {
-      const header = document.querySelector('.app-header');
-      const headerCs = header && getComputedStyle(header);
-      const headerRect = header?.getBoundingClientRect();
-      const titleRect = document.querySelector('.app-title')?.getBoundingClientRect();
-      const statsRect = document.querySelector('.stats')?.getBoundingClientRect();
-      const modeRect = document.querySelector('.mode-selector')?.getBoundingClientRect();
-      const hudRect = document.querySelector('.hud-panel')?.getBoundingClientRect();
-      const setupRect = document.querySelector('.setup-panel')?.getBoundingClientRect();
-      return {
-        innerWidth: window.innerWidth,
-        innerHeight: window.innerHeight,
-        scrollWidth: document.documentElement.scrollWidth,
-        scrollHeight: document.documentElement.scrollHeight,
-        headerInnerWidth: headerRect && headerCs
-          ? headerRect.width - parseFloat(headerCs.paddingLeft) - parseFloat(headerCs.paddingRight)
-          : 0,
-        titleHeight: titleRect?.height || 0,
-        statsRect: statsRect && { left: statsRect.left, right: statsRect.right, width: statsRect.width },
-        modeWidth: modeRect?.width || 0,
-        hudRight: hudRect?.right || 0,
-        setupLeft: setupRect?.left || 0,
-      };
-    })()`);
-
-    assert.ok(
-      m.scrollWidth <= m.innerWidth,
-      `${vp.key} idle horizontal overflow: ${m.scrollWidth} > ${m.innerWidth}`
-    );
-    assert.ok(
-      m.scrollHeight <= m.innerHeight,
-      `${vp.key} idle vertical overflow: ${m.scrollHeight} > ${m.innerHeight}`
-    );
-
-    if (vp.key === 'mobile320') {
-      assert.ok(m.statsRect.left >= 12 && m.statsRect.right <= 308, `320px stats margins broken: ${JSON.stringify(m.statsRect)}`);
-      assert.ok(Math.abs(m.statsRect.width - m.modeWidth) <= 2, `320px stats/mode width mismatch: ${m.statsRect.width} vs ${m.modeWidth}`);
-      assert.ok(m.titleHeight <= 36, `320px title wrapped to height ${m.titleHeight}px`);
-    } else if (vp.key === 'landscape667') {
-      assert.ok(m.setupLeft >= m.hudRight - 2, `667x375 idle not two-column: setupLeft=${m.setupLeft} hudRight=${m.hudRight}`);
-    } else if (vp.key === 'desktop1440') {
-      assert.ok(Math.abs(m.statsRect.width - m.modeWidth) <= 2, `1440px stats/mode width mismatch: ${m.statsRect.width} vs ${m.modeWidth}`);
-      assert.ok(Math.abs(m.headerInnerWidth - m.statsRect.width) <= 4, `1440px header/stats width mismatch: ${m.headerInnerWidth} vs ${m.statsRect.width}`);
-    }
-
-    await cdp.screenshot(screenshotsDir, vp.shot);
-    results[vp.key] = {
-      scroll: `${m.scrollWidth}x${m.scrollHeight}`,
-      statsWidth: Math.round(m.statsRect.width),
-    };
-  }
-
-  await setViewport(cdp, 430, 820, true);
-  return results;
-}
-
-async function verifyResponsiveGameplay(cdp, screenshotsDir) {
-  const results = {};
-  const specs = [
-    { key: 'mobile320', width: 320, height: 568, mobile: true, shot: '10_play_320.png' },
-    { key: 'landscape667', width: 667, height: 375, mobile: true, shot: '11_play_landscape_667.png' },
-    { key: 'desktop1440', width: 1440, height: 900, mobile: false, shot: '12_play_desktop_1440.png' },
-  ];
-
-  for (const vp of specs) {
-    await setViewport(cdp, vp.width, vp.height, vp.mobile);
-    const m = await cdp.eval(`(() => {
-      const tileRect = document.querySelector('button.tile')?.getBoundingClientRect();
-      const hudRect = document.querySelector('.hud-panel')?.getBoundingClientRect();
-      const boardRect = document.querySelector('.board-stage')?.getBoundingClientRect();
-      const gridRect = document.querySelector('.grid-container')?.getBoundingClientRect();
-      return {
-        innerWidth: window.innerWidth,
-        innerHeight: window.innerHeight,
-        scrollWidth: document.documentElement.scrollWidth,
-        scrollHeight: document.documentElement.scrollHeight,
-        tileW: tileRect?.width || 0,
-        tileH: tileRect?.height || 0,
-        hudRight: hudRect?.right || 0,
-        boardLeft: boardRect?.left || 0,
-        gridLeft: gridRect?.left || 0,
-      };
-    })()`);
-
-    assert.ok(
-      m.scrollWidth <= m.innerWidth,
-      `${vp.key} gameplay horizontal overflow: ${m.scrollWidth} > ${m.innerWidth}`
-    );
-    assert.ok(
-      m.scrollHeight <= m.innerHeight,
-      `${vp.key} gameplay vertical overflow: ${m.scrollHeight} > ${m.innerHeight}`
-    );
-    assert.ok(
-      Math.abs(m.tileW - m.tileH) <= 1,
-      `${vp.key} tile not square: ${m.tileW}x${m.tileH}`
-    );
-
-    if (vp.key === 'landscape667') {
-      assert.ok(m.boardLeft >= m.hudRight - 2, `667x375 play not two-column: boardLeft=${m.boardLeft} hudRight=${m.hudRight}`);
-      assert.ok(m.tileW >= 70, `667x375 3x3 tile too small: ${m.tileW}px`);
-    } else if (vp.key === 'desktop1440') {
-      assert.ok(m.tileW >= 90, `1440x900 3x3 tile too small: ${m.tileW}px`);
-    }
-
-    await cdp.screenshot(screenshotsDir, vp.shot);
-    results[vp.key] = {
-      scroll: `${m.scrollWidth}x${m.scrollHeight}`,
-      tilePx: Math.round(m.tileW),
-    };
-  }
-
-  await setViewport(cdp, 430, 820, true);
-  return results;
-}
 
 async function main() {
   const { url: providedUrl, screenshotsDir } = parseArgs(process.argv.slice(2));
@@ -624,12 +222,37 @@ async function main() {
     })`);
     assert.equal(gameOverState.visible, true, 'GameOverDialogComponent should open on failure');
     assert.equal(gameOverState.newBestText, 'New Personal Best!');
+    const gameOverDialogChecks = await verifyModalAcrossViewports(
+      cdp,
+      'app-game-over-dialog',
+      screenshotsDir,
+      'gameover_dialog'
+    );
 
     await cdp.eval(
       `[...document.querySelectorAll('app-game-over-dialog button')].find(b => b.textContent.trim() === 'Close')?.click()`
     );
     await sleep(250);
     await cdp.screenshot(screenshotsDir, '4_gameover_review.png');
+    const gameOverReviewChecks = await verifyResponsiveGameOverReview(cdp, screenshotsDir);
+
+    await cdp.send('Emulation.setEmulatedMedia', {
+      features: [{ name: 'prefers-reduced-motion', value: 'reduce' }],
+    });
+    await sleep(80);
+    const overReducedMotion = await cdp.eval(`(() => {
+      const sels = ['body', '#theme-toggle-button', '.mode-pill', '.progressive-toggle', '.tile'];
+      const out = {};
+      for (const s of sels) {
+        const el = document.querySelector(s);
+        out[s] = el ? getComputedStyle(el).transitionDuration : null;
+      }
+      return out;
+    })()`);
+    for (const [sel, dur] of Object.entries(overReducedMotion)) {
+      assert.equal(dur, '0s', `Expected 0s transitionDuration on ${sel} under reduced motion, got ${dur}`);
+    }
+    await cdp.send('Emulation.setEmulatedMedia', { features: [] });
 
     const hudAfterGameOver = await cdp.eval(`document.querySelector('.stats')?.innerText?.replace(/\\s+/g, ' ').trim()`);
     assert.match(hudAfterGameOver, /BEST 6/i);
@@ -684,162 +307,7 @@ async function main() {
     );
     await sleep(250);
 
-    // 8. Daily Challenge (in light mode): contrast checks, deterministic sequence, stats isolation, Game Over actions, unranked replay, and Stats heatmap
-    const isDarkBeforeDaily = await cdp.eval(`document.documentElement.classList.contains('dark')`);
-    if (isDarkBeforeDaily) {
-      await cdp.eval(`document.querySelector('#theme-toggle-button')?.click()`);
-      await sleep(400);
-    }
-    const isLightForDaily = await cdp.eval(`document.documentElement.classList.contains('light')`);
-    assert.equal(isLightForDaily, true, 'Expected <html> to have light class before Daily Challenge');
-
-    await cdp.eval(`
-      window.__recordedSeq = [];
-      if (window.__dailyObs) window.__dailyObs.disconnect();
-      window.__dailyObs = new MutationObserver(() => {
-        const lit = [...document.querySelectorAll('button.tile.lit')].map(b => Number(b.dataset.tileId));
-        if (lit.length === 1 && window.__recordedSeq[window.__recordedSeq.length - 1] !== lit[0]) {
-          window.__recordedSeq.push(lit[0]);
-        }
-      });
-      window.__dailyObs.observe(document.body, { subtree: true, attributes: true, attributeFilter: ['class'] });
-      document.querySelector('#daily-challenge-button')?.click();
-    `);
-
-    const lightLitProbe = await measureSettledLitTile(cdp, 280);
-    assert.notEqual(lightLitProbe.gridBg, 'rgba(0, 0, 0, 0)', 'Light grid tray must have an explicit background');
-    const lightLitCr = contrastRatio(lightLitProbe.litBg, lightLitProbe.idleBg);
-    assert.ok(lightLitCr >= 3.0, `Light lit tile contrast was ${lightLitCr}:1 (< 3.0:1)`);
-
-    await waitForMessage(cdp, 'Your turn');
-    const dailySeq1 = await cdp.eval(`window.__recordedSeq`);
-    assert.equal(dailySeq1.length, 3, `Expected 3 flashed tiles in Daily Lvl 1, got ${JSON.stringify(dailySeq1)}`);
-
-    await cdp.eval(`document.querySelector('button[data-tile-id="${dailySeq1[0]}"]')?.click()`);
-    await sleep(250);
-    const lightSelProbe = await cdp.eval(`(() => {
-      const sel = document.querySelector('button[data-tile-id="${dailySeq1[0]}"]');
-      const idle = document.querySelector('button.tile:not(.selected-by-player):not(.lit)');
-      return {
-        selectedBg: getComputedStyle(sel).backgroundColor,
-        idleBg: getComputedStyle(idle).backgroundColor,
-      };
-    })()`);
-    const lightSelectedCr = contrastRatio(lightSelProbe.selectedBg, lightSelProbe.idleBg);
-    assert.ok(lightSelectedCr >= 3.0, `Light selected tile contrast was ${lightSelectedCr}:1 (< 3.0:1)`);
-    assert.notEqual(lightSelProbe.selectedBg, lightLitProbe.litBg, 'Light selected tile must be distinct from lit tile');
-
-    await cdp.eval(`document.querySelector('button[data-tile-id="${dailySeq1[1]}"]')?.click()`);
-    await cdp.eval(`document.querySelector('button[data-tile-id="${dailySeq1[2]}"]')?.click()`);
-
-    await waitForMessage(cdp, 'Round Cleared!');
-    await cdp.eval(`window.__recordedSeq = [];`);
-    await waitForMessage(cdp, 'Your turn');
-    const dailySeq2 = await cdp.eval(`window.__recordedSeq`);
-    assert.equal(dailySeq2.length, 4, `Expected 4 flashed tiles in Daily Lvl 2, got ${JSON.stringify(dailySeq2)}`);
-
-    const dailyWrong2 = await cdp.eval(`
-      [...document.querySelectorAll('button[data-tile-id]')]
-        .map(b => Number(b.dataset.tileId))
-        .find(id => !${JSON.stringify(dailySeq2)}.includes(id))
-    `);
-    await cdp.eval(`document.querySelector('button[data-tile-id="${dailySeq2[0]}"]')?.click()`);
-    await cdp.eval(`document.querySelector('button[data-tile-id="${dailySeq2[1]}"]')?.click()`);
-    await cdp.eval(`document.querySelector('button[data-tile-id="${dailySeq2[2]}"]')?.click()`);
-    await cdp.eval(`document.querySelector('button[data-tile-id="${dailyWrong2}"]')?.click()`);
-    await sleep(250);
-
-    const dailyOverDialog = await cdp.eval(`({
-      title: document.querySelector('app-game-over-dialog .game-over-title')?.textContent?.trim() || '',
-      hasCopy: Boolean(document.querySelector('app-game-over-dialog #copy-daily-result-button')),
-      buttons: [...document.querySelectorAll('app-game-over-dialog button')].map(b => b.textContent.trim()),
-    })`);
-    assert.equal(dailyOverDialog.title, 'Daily Challenge Complete');
-    assert.equal(dailyOverDialog.hasCopy, true);
-    assert.ok(dailyOverDialog.buttons.includes('Replay Daily'));
-    assert.ok(!dailyOverDialog.buttons.includes('Retry Level'));
-
-    await cdp.eval(
-      `[...document.querySelectorAll('app-game-over-dialog button')].find(b => b.textContent.trim() === 'Close')?.click()`
-    );
-    await sleep(250);
-
-    const afterDailyClose = await cdp.eval(`({
-      dailyRaw: localStorage.getItem('mnemonic:daily:v1'),
-      classicGames: JSON.parse(localStorage.getItem('mnemonic:stats:v2') || '{}')?.byMode?.classic?.gamesPlayed ?? 0,
-      mainButtons: [...document.querySelectorAll('app-game button')].map(b => b.textContent.trim()),
-      dailyBtnText: document.querySelector('#daily-challenge-button')?.textContent?.trim() || '',
-    })`);
-    assert.notEqual(afterDailyClose.dailyRaw, null, 'Daily run should persist in localStorage');
-    assert.equal(afterDailyClose.classicGames, 0, 'Daily run must not count toward Classic stats');
-    assert.ok(!afterDailyClose.mainButtons.includes('Retry Level'));
-    assert.match(afterDailyClose.dailyBtnText, /Daily Done \(6\)/);
-
-    // Unranked replay: must reproduce exact same Level 1 sequence and show Unranked Replay badge
-    await cdp.eval(`
-      window.__recordedSeq = [];
-      document.querySelector('#daily-challenge-button')?.click();
-    `);
-    await waitForMessage(cdp, 'Your turn');
-    const replaySeq1 = await cdp.eval(`window.__recordedSeq`);
-    assert.deepEqual(replaySeq1, dailySeq1, 'Daily Challenge replay must reproduce identical sequence');
-    const unrankedBadge = await cdp.eval(`document.querySelector('.unranked-badge')?.textContent?.trim() || ''`);
-    assert.equal(unrankedBadge, 'Unranked Replay');
-
-    // Fail Level 1 during unranked replay; score must remain locked at 6
-    const replayWrong1 = await cdp.eval(`
-      [...document.querySelectorAll('button[data-tile-id]')]
-        .map(b => Number(b.dataset.tileId))
-        .find(id => !${JSON.stringify(replaySeq1)}.includes(id))
-    `);
-    await cdp.eval(`document.querySelector('button[data-tile-id="${replaySeq1[0]}"]')?.click()`);
-    await cdp.eval(`document.querySelector('button[data-tile-id="${replaySeq1[1]}"]')?.click()`);
-    await cdp.eval(`document.querySelector('button[data-tile-id="${replayWrong1}"]')?.click()`);
-    await sleep(250);
-
-    const replayDialogBeforeCopy = await cdp.eval(`({
-      title: document.querySelector('app-game-over-dialog .game-over-title')?.textContent?.trim() || '',
-      copyLabel: document.querySelector('app-game-over-dialog #copy-daily-result-button')?.textContent?.trim() || '',
-      note: document.querySelector('app-game-over-dialog .unranked-note')?.textContent?.trim() || '',
-    })`);
-    assert.equal(replayDialogBeforeCopy.title, 'Daily Replay Complete');
-    assert.equal(replayDialogBeforeCopy.copyLabel, 'Copy Official Result');
-    assert.match(replayDialogBeforeCopy.note, /official result: 6 pts/i);
-
-    await cdp.eval(`document.querySelector('app-game-over-dialog #copy-daily-result-button')?.click()`);
-    await sleep(150);
-
-    await cdp.eval(
-      `[...document.querySelectorAll('app-game-over-dialog button')].find(b => b.textContent.trim() === 'Replay Daily')?.click()`
-    );
-    await waitForMessage(cdp, 'Memorize');
-
-    const lockedCheck = await cdp.eval(`(() => {
-      const store = JSON.parse(localStorage.getItem('mnemonic:daily:v1') || '{}');
-      const entries = Object.values(store.history || {});
-      return {
-        count: entries.length,
-        score: entries[0]?.score ?? null,
-      };
-    })()`);
-    assert.deepEqual(lockedCheck, { count: 1, score: 6 });
-
-    // Verify Daily tab in Stats dialog shows Current Streak 1d and 84 heatmap cells without horizontal overflow
-    await cdp.eval(`document.querySelector('#stats-button')?.click()`);
-    await sleep(250);
-    await cdp.eval(`document.querySelector('#stats-tab-daily')?.click()`);
-    await sleep(150);
-    const dailyStatsView = await cdp.eval(`({
-      text: document.querySelector('app-stats-dialog')?.innerText?.replace(/\\s+/g, ' ').trim() || '',
-      hasListRole: Boolean(document.querySelector('app-stats-dialog .heatmap-grid[role="list"]')),
-      heatmapCount: document.querySelectorAll('app-stats-dialog .heatmap-cell[role="listitem"]').length,
-      docOverflow: document.documentElement.scrollWidth > window.innerWidth,
-    })`);
-    assert.match(dailyStatsView.text, /CURRENT STREAK 1D/i);
-    assert.equal(dailyStatsView.hasListRole, true);
-    assert.equal(dailyStatsView.heatmapCount, 84);
-    assert.equal(dailyStatsView.docOverflow, false);
-    await cdp.screenshot(screenshotsDir, '6_daily_stats.png');
+    const daily = await verifyDailyChallengeAndReducedMotion(cdp, screenshotsDir);
 
     assert.deepEqual(cdp.consoleErrors, [], `Unexpected console errors: ${cdp.consoleErrors.join('; ')}`);
 
@@ -861,18 +329,23 @@ async function main() {
             newBestText: gameOverState.newBestText,
             statsDialogReset: true,
             dailyDeterministic: true,
-            dailyHeatmapCells: dailyStatsView.heatmapCount,
+            dailyHeatmapCells: daily.dailyHeatmapCells,
+            heatmapTapInspect: true,
+            reducedMotion: { ...overReducedMotion, ...daily.reducedMotionDurations },
             contrastChecks: {
               lightIdle: lightIdleContrast,
               darkIdle: darkIdleContrast,
               darkLitVsIdle: darkLitCr,
               darkSelectedVsIdle: darkSelectedCr,
-              lightLitVsIdle: lightLitCr,
-              lightSelectedVsIdle: lightSelectedCr,
+              lightLitVsIdle: daily.lightLitCr,
+              lightSelectedVsIdle: daily.lightSelectedCr,
             },
             responsiveChecks: {
               idle: responsiveIdleChecks,
               gameplay: responsivePlayChecks,
+              gameOverReview: gameOverReviewChecks,
+              gameOverDialog: gameOverDialogChecks,
+              dailyStatsDialog: daily.dailyStatsModalChecks,
             },
             review,
             consoleErrors: 0,
