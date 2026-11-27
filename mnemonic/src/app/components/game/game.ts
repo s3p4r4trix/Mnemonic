@@ -49,7 +49,10 @@ export class GameComponent {
           void this.handleRoundCleared(token);
         } else if (gameState === "over") {
           const dialogRef = this.dialog.open(GameOverDialogComponent, {
-            disableClose: true // Prevent closing by clicking outside or Escape key
+            disableClose: true, // Prevent closing by clicking outside or Escape key
+            panelClass: 'app-dialog-panel',
+            maxWidth: 'min(92vw, 440px)',
+            maxHeight: '92dvh',
           });
 
           dialogRef.afterClosed().subscribe(result => {

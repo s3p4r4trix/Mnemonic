@@ -1,8 +1,8 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from "@angular/core";
+import { ChangeDetectionStrategy, Component, ElementRef, computed, effect, inject, signal } from "@angular/core";
 import { DatePipe } from "@angular/common";
 import { MatButtonModule } from "@angular/material/button";
 import { MatDialogModule, MatDialogRef } from "@angular/material/dialog";
-import { DailyRunResult, HeatmapCell } from "../../models/daily.model";
+import { DailyDateKey, DailyRunResult, HeatmapCell } from "../../models/daily.model";
 import { GAME_MODES, GAME_MODE_CONFIGS, GameMode } from "../../models/game-mode.model";
 import { RunRecord } from "../../models/stats.model";
 import { DailyChallengeService } from "../../services/daily-challenge.service";
@@ -24,6 +24,7 @@ export class StatsDialogComponent {
   readonly dailyService = inject(DailyChallengeService);
   readonly #gameService = inject(GameService);
   readonly #dialogRef = inject(MatDialogRef<StatsDialogComponent>);
+  readonly #hostEl = inject<ElementRef<HTMLElement>>(ElementRef);
 
   readonly modes = GAME_MODES;
   readonly selectedTab = signal<StatsTab>(
@@ -35,6 +36,18 @@ export class StatsDialogComponent {
   });
   readonly confirmingReset = signal(false);
   readonly copyState = signal<"idle" | "copied" | "error">("idle");
+  readonly selectedHeatmapDate = signal<DailyDateKey | null>(null);
+
+  readonly selectedHeatmapCell = computed<HeatmapCell | null>(() => {
+    const cells = this.dailyService.heatmapCells();
+    const date = this.selectedHeatmapDate();
+    return (
+      cells.find(c => c.date === date) ??
+      cells.find(c => c.isToday) ??
+      cells[cells.length - 1] ??
+      null
+    );
+  });
 
   readonly selectedModeConfig = computed(() => GAME_MODE_CONFIGS[this.selectedMode()]);
   readonly selectedStats = computed(() =>
@@ -52,6 +65,14 @@ export class StatsDialogComponent {
 
   constructor() {
     this.dailyService.refreshToday();
+    effect(() => {
+      this.selectedTab();
+      queueMicrotask(() => {
+        this.#hostEl.nativeElement
+          .querySelector<HTMLElement>(".stats-mode-tab.active")
+          ?.scrollIntoView({ inline: "nearest", block: "nearest" });
+      });
+    });
   }
 
   readonly orderAccuracyPercent = computed<number | null>(() => {
@@ -71,6 +92,60 @@ export class StatsDialogComponent {
     this.selectedTab.set(tab);
     this.confirmingReset.set(false);
     this.copyState.set("idle");
+  }
+
+  selectHeatmapCell(date: DailyDateKey): void {
+    this.selectedHeatmapDate.set(date);
+  }
+
+  onHeatmapKeydown(event: KeyboardEvent, index: number): void {
+    const cells = this.dailyService.heatmapCells();
+    if (cells.length === 0) return;
+    let next = -1;
+    switch (event.key) {
+      case "ArrowDown":
+        next = index + 1;
+        break;
+      case "ArrowUp":
+        next = index - 1;
+        break;
+      case "ArrowRight":
+        next = index + 7;
+        break;
+      case "ArrowLeft":
+        next = index - 7;
+        break;
+      case "Home":
+        next = 0;
+        break;
+      case "End":
+        next = cells.length - 1;
+        break;
+      default:
+        return;
+    }
+    event.preventDefault();
+    if (next < 0 || next >= cells.length) return;
+    this.selectHeatmapCell(cells[next].date);
+    this.#hostEl.nativeElement
+      .querySelectorAll<HTMLButtonElement>("button.heatmap-cell")
+      [next]?.focus();
+  }
+
+  heatmapDetailText(cell: HeatmapCell): string {
+    if (!cell.result) {
+      return `${cell.date} · Not played`;
+    }
+    if (cell.failed) {
+      return `${cell.date} · Lvl 1 (Not cleared) · 0 pts`;
+    }
+    return `${cell.date} · Lvl ${cell.result.level} · ${cell.result.score} pts`;
+  }
+
+  heatmapDetailStrip(cell: HeatmapCell): string {
+    return cell.result && !cell.failed
+      ? formatRoundOutcomes(cell.result.roundOutcomes)
+      : "";
   }
 
   heatmapCellLabel(cell: HeatmapCell): string {

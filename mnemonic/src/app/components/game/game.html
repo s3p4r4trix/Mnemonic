@@ -43,6 +43,12 @@
     }
   </div>
 
+  @if (gameService.gameState() !== 'idle') {
+    <div class="board-stage">
+      <app-grid></app-grid>
+    </div>
+  }
+
   @if (gameService.gameState() === 'idle' || gameService.gameState() === 'over') {
     <div class="setup-panel">
       <div class="mode-picker">
@@ -112,12 +118,6 @@
           </button>
         }
       </div>
-    </div>
-  }
-
-  @if (gameService.gameState() !== 'idle') {
-    <div class="board-stage">
-      <app-grid></app-grid>
     </div>
   }
 

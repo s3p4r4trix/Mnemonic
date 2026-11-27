@@ -30,6 +30,13 @@ html {
   );
 
   @include theme.game-tokens();
+
+  --mat-button-text-container-height: 44px;
+  --mat-button-filled-container-height: 44px;
+  --mat-button-tonal-container-height: 44px;
+  --mat-button-outlined-container-height: 44px;
+  --mat-button-protected-container-height: 44px;
+  --mat-icon-button-state-layer-size: 44px;
 }
 
 @media (min-width: 768px) {
@@ -64,8 +71,104 @@ body {
   touch-action: manipulation;
 }
 
+.app-dialog-panel {
+  max-height: 92dvh;
+
+  .mat-mdc-dialog-surface {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid var(--game-card-border);
+    --mat-dialog-container-color: var(--game-card-bg);
+    --mat-dialog-container-shape: 12px;
+    --mat-dialog-container-elevation-shadow: var(--game-dialog-shadow);
+
+    > * {
+      display: flex;
+      flex-direction: column;
+      flex: 1 1 auto;
+      max-height: calc(92dvh - 2px);
+      min-height: 0;
+      overflow: hidden;
+    }
+  }
+
+  .mat-mdc-dialog-title,
+  .mat-mdc-dialog-actions {
+    flex-shrink: 0;
+  }
+
+  .mat-mdc-dialog-content {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+  }
+
+  .stats-mode-tabs {
+    scrollbar-width: thin;
+  }
+}
+
+@media (max-width: 380px) {
+  .app-dialog-panel {
+    --mat-dialog-headline-padding: 4px 16px 8px;
+    --mat-dialog-content-padding: 12px 16px;
+    --mat-dialog-with-actions-content-padding: 12px 16px 0;
+    --mat-dialog-actions-padding: 10px 16px;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  .app-dialog-panel {
+    --mat-dialog-headline-padding: 4px 20px 8px;
+    --mat-dialog-content-padding: 10px 20px;
+    --mat-dialog-with-actions-content-padding: 10px 20px 0;
+    --mat-dialog-actions-padding: 8px 20px;
+  }
+}
+
+.copy-status-region {
+  width: 100%;
+}
+
+.copy-error-note {
+  margin: 0 0 6px;
+  font-size: 0.78rem;
+  color: var(--mat-sys-error);
+}
+
+.share-fallback {
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 10px;
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid var(--mat-sys-outline-variant);
+  background-color: var(--mat-sys-surface-container);
+  color: var(--mat-sys-on-surface);
+  font-family: monospace;
+  font-size: 0.78rem;
+  resize: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  body {
-    transition: none;
+  html {
+    scroll-behavior: auto;
+  }
+
+  body,
+  button,
+  .mode-pill,
+  .progressive-toggle,
+  .stats-mode-tab,
+  .heatmap-cell,
+  .mat-mdc-button-base,
+  .mat-mdc-button-persistent-ripple::before,
+  .mat-ripple-element {
+    transition: none !important;
+    animation: none !important;
   }
 }

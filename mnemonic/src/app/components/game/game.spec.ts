@@ -193,4 +193,22 @@ describe("GameComponent", () => {
     expect(buttonTexts).not.toContain("Retry Level");
     expect(host.querySelector("#daily-challenge-button")?.textContent?.trim()).toContain("Daily Done (0)");
   });
+
+  it("should render the review board above setup controls when gameState is over", () => {
+    gameService.gameState.set("over");
+    fixture.detectChanges();
+
+    const host = fixture.nativeElement as HTMLElement;
+    const boardStage = host.querySelector(".board-stage");
+    const setupPanel = host.querySelector(".setup-panel");
+    expect(boardStage).not.toBeNull();
+    expect(setupPanel).not.toBeNull();
+    expect(
+      Boolean(
+        boardStage &&
+        setupPanel &&
+        (boardStage.compareDocumentPosition(setupPanel) & Node.DOCUMENT_POSITION_FOLLOWING)
+      )
+    ).toBeTrue();
+  });
 });

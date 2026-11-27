@@ -121,8 +121,24 @@ describe("StatsDialogComponent", () => {
     expect(text).toContain("1d");
     expect(text).toContain("48");
     expect(host.querySelector('.heatmap-grid[role="list"]')).not.toBeNull();
-    expect(host.querySelectorAll('.heatmap-cell[role="listitem"]').length).toBe(84);
-    expect(host.querySelectorAll(".heatmap-cell.is-today").length).toBe(1);
+    expect(host.querySelectorAll('.heatmap-item[role="listitem"]').length).toBe(84);
+    expect(host.querySelectorAll("button.heatmap-cell").length).toBe(84);
+    const todayCell = host.querySelector("button.heatmap-cell.is-today") as HTMLButtonElement | null;
+    expect(todayCell).not.toBeNull();
+    expect(todayCell?.getAttribute("aria-pressed")).toBe("true");
+    expect(host.querySelector(".heatmap-detail")?.textContent?.trim()).toContain(`${today} · Lvl 4 · 48 pts`);
+
+    const otherCell = host.querySelector("button.heatmap-cell:not(.is-today)") as HTMLButtonElement | null;
+    expect(otherCell).not.toBeNull();
+    otherCell?.click();
+    fixture.detectChanges();
+    expect(otherCell?.getAttribute("aria-pressed")).toBe("true");
+    expect(todayCell?.getAttribute("aria-pressed")).toBe("false");
+    expect(host.querySelector(".heatmap-detail")?.textContent?.trim()).toContain("Not played");
+
+    todayCell?.click();
+    fixture.detectChanges();
+    expect(host.querySelector(".heatmap-detail")?.textContent?.trim()).toContain("48 pts");
 
     component.requestReset();
     fixture.detectChanges();
@@ -131,6 +147,7 @@ describe("StatsDialogComponent", () => {
 
     expect(dailyService.hasRecordedRuns()).toBeFalse();
     expect(statsService.statsForMode("classic")().gamesPlayed).toBe(1);
+    expect(host.querySelector(".heatmap-detail")?.textContent?.trim()).toBe(`${today} · Not played`);
   });
 
   it("should label failed Level 1 heatmap cell and show selectable fallback on copyTodayResult error", async () => {
@@ -165,5 +182,41 @@ describe("StatsDialogComponent", () => {
     const fallback = host.querySelector("textarea.share-fallback") as HTMLTextAreaElement | null;
     expect(fallback).not.toBeNull();
     expect(fallback?.value).toContain(`Mnemonic Daily ${today}`);
+  });
+
+  it("should support roving tabindex and arrow-key navigation across heatmap cells", () => {
+    component.selectTab("daily");
+    fixture.detectChanges();
+
+    const host = fixture.nativeElement as HTMLElement;
+    const cells = Array.from(host.querySelectorAll<HTMLButtonElement>("button.heatmap-cell"));
+    expect(cells.length).toBe(84);
+    expect(host.querySelectorAll('button.heatmap-cell[tabindex="0"]').length).toBe(1);
+    expect(host.querySelectorAll('button.heatmap-cell[tabindex="-1"]').length).toBe(83);
+
+    const todayIdx = cells.findIndex((el) => el.classList.contains("is-today"));
+    expect(todayIdx).toBeGreaterThan(7);
+
+    cells[todayIdx].dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowLeft", bubbles: true }));
+    fixture.detectChanges();
+    expect(cells[todayIdx - 7].getAttribute("tabindex")).toBe("0");
+    expect(cells[todayIdx].getAttribute("tabindex")).toBe("-1");
+    expect(cells[todayIdx - 7].getAttribute("aria-pressed")).toBe("true");
+
+    cells[todayIdx - 7].dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true }));
+    fixture.detectChanges();
+    expect(cells[todayIdx - 8].getAttribute("tabindex")).toBe("0");
+  });
+
+  it("should track today across midnight rollover when no custom cell was selected", () => {
+    expect(component.selectedHeatmapDate()).toBeNull();
+    expect(component.selectedHeatmapCell()?.isToday).toBeTrue();
+
+    const futureDate = new Date(2099, 0, 15);
+    dailyService.refreshToday(futureDate);
+    fixture.detectChanges();
+
+    expect(component.selectedHeatmapCell()?.date).toBe("2099-01-15");
+    expect(component.selectedHeatmapCell()?.isToday).toBeTrue();
   });
 });
