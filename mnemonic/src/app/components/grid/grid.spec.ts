@@ -64,4 +64,43 @@ describe("GridComponent", () => {
     expect(missedBtn.textContent).toContain("3");
     expect(wrongBtn.textContent).toContain("×");
   });
+
+  it("should size fluid CSS tiles squarely without inline px styles and fit 8x8 inside 288px", () => {
+    const host = fixture.nativeElement as HTMLElement;
+    const grid = host.querySelector(".grid-container") as HTMLElement;
+
+    expect(grid.style.getPropertyValue("--grid-size")).toBe("3");
+    expect(grid.getAttribute("data-grid-density")).toBe("normal");
+    const initialTile = host.querySelector("button.tile") as HTMLButtonElement;
+    expect(initialTile.style.width).toBe("");
+    expect(initialTile.style.height).toBe("");
+
+    gameService.gridSize.set(5);
+    gameService.initializeGrid();
+    fixture.detectChanges();
+    expect(grid.style.getPropertyValue("--grid-size")).toBe("5");
+    expect(grid.getAttribute("data-grid-density")).toBe("medium");
+
+    // Simulate a 320x568 phone content area (320px minus 16px horizontal padding each side = 288px, height cap 568 - 260 = 308px)
+    host.style.display = "block";
+    host.style.width = "288px";
+    host.style.setProperty("--board-height-cap", "308px");
+    gameService.gridSize.set(8);
+    gameService.initializeGrid();
+    fixture.detectChanges();
+
+    expect(grid.style.getPropertyValue("--grid-size")).toBe("8");
+    expect(grid.getAttribute("data-grid-density")).toBe("dense");
+
+    const gridRect = grid.getBoundingClientRect();
+    expect(gridRect.width).toBeLessThanOrEqual(288.5);
+
+    const tileButtons = Array.from(host.querySelectorAll<HTMLButtonElement>("button.tile"));
+    expect(tileButtons.length).toBe(64);
+    for (const btn of tileButtons) {
+      const rect = btn.getBoundingClientRect();
+      expect(rect.width).toBeGreaterThanOrEqual(28);
+      expect(Math.abs(rect.width - rect.height)).toBeLessThanOrEqual(1);
+    }
+  });
 });

@@ -10,8 +10,8 @@ import {TileComponent} from "../tile/tile";
       class="grid-container"
       role="grid"
       aria-label="Memory tile grid"
-      [style.grid-template-columns]="gridColumns()"
-      [style.gap]="gridGap()"
+      [style.--grid-size]="gameService.gridSize()"
+      [attr.data-grid-density]="gridDensity()"
       (keydown)="onGridKeydown($event)">
       @for (tile of gameService.tiles(); track tile.id) {
         <app-tile
@@ -23,14 +23,58 @@ import {TileComponent} from "../tile/tile";
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: [`
+    :host {
+      display: flex;
+      justify-content: center;
+      width: 100%;
+    }
+
     .grid-container {
+      --grid-gap: 8px;
+      --grid-pad: 10px;
+      --tile-radius: 10px;
+      --tile-order-size: 1.05rem;
+      --tile-badge-hit-size: 0.72rem;
+      --tile-badge-miss-size: 1.35rem;
+      --max-tile-size: 100px;
+      --board-ideal-size: calc(
+        var(--grid-size, 3) * var(--max-tile-size)
+        + (var(--grid-size, 3) - 1) * var(--grid-gap)
+        + var(--grid-pad) * 2
+      );
+
       display: grid;
-      margin: 12px auto;
-      padding: 10px;
+      grid-template-columns: repeat(var(--grid-size, 3), minmax(0, 1fr));
+      gap: var(--grid-gap);
+      padding: var(--grid-pad);
+      width: min(
+        100%,
+        var(--board-ideal-size),
+        var(--board-max-size, 520px),
+        var(--board-height-cap, calc(100dvh - 260px))
+      );
+      margin: 0 auto;
       background-color: var(--game-board-bg);
       border: 1px solid var(--game-board-border);
       border-radius: 14px;
-      width: fit-content;
+    }
+
+    .grid-container[data-grid-density="medium"] {
+      --grid-gap: 6px;
+      --grid-pad: 8px;
+      --tile-radius: 8px;
+      --tile-order-size: 0.92rem;
+      --tile-badge-hit-size: 0.65rem;
+      --tile-badge-miss-size: 1.15rem;
+    }
+
+    .grid-container[data-grid-density="dense"] {
+      --grid-gap: 4px;
+      --grid-pad: 6px;
+      --tile-radius: 6px;
+      --tile-order-size: 0.78rem;
+      --tile-badge-hit-size: 0.55rem;
+      --tile-badge-miss-size: 0.95rem;
     }
   `]
 })
@@ -38,13 +82,11 @@ export class GridComponent {
   gameService = inject(GameService);
   readonly #elementRef: ElementRef<HTMLElement> = inject(ElementRef);
 
-  readonly gridColumns = computed(
-    () => `repeat(${this.gameService.gridSize()}, ${this.gameService.tileSize()}px)`
-  );
-
-  readonly gridGap = computed(() => {
-    const calculatedGap = Math.floor(this.gameService.tileSize() * 0.1);
-    return `${Math.max(4, calculatedGap)}px`;
+  readonly gridDensity = computed<"normal" | "medium" | "dense">(() => {
+    const size = this.gameService.gridSize();
+    if (size >= 7) return "dense";
+    if (size >= 5) return "medium";
+    return "normal";
   });
 
   onTileClicked(tileId: number): void {

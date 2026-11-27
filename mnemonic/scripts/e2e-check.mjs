@@ -307,6 +307,141 @@ async function measureSettledLitTile(cdp, settleMs = 250) {
   throw new Error('Could not sample a settled lit tile before it turned off');
 }
 
+async function setViewport(cdp, width, height, mobile) {
+  await cdp.send('Emulation.setDeviceMetricsOverride', {
+    width,
+    height,
+    deviceScaleFactor: mobile ? 2 : 1,
+    mobile,
+  });
+  await sleep(120);
+}
+
+async function verifyResponsiveIdle(cdp, screenshotsDir) {
+  const results = {};
+  const specs = [
+    { key: 'mobile320', width: 320, height: 568, mobile: true, shot: '7_idle_320.png' },
+    { key: 'landscape667', width: 667, height: 375, mobile: true, shot: '8_idle_landscape_667.png' },
+    { key: 'desktop1440', width: 1440, height: 900, mobile: false, shot: '9_idle_desktop_1440.png' },
+  ];
+
+  for (const vp of specs) {
+    await setViewport(cdp, vp.width, vp.height, vp.mobile);
+    const m = await cdp.eval(`(() => {
+      const header = document.querySelector('.app-header');
+      const headerCs = header && getComputedStyle(header);
+      const headerRect = header?.getBoundingClientRect();
+      const titleRect = document.querySelector('.app-title')?.getBoundingClientRect();
+      const statsRect = document.querySelector('.stats')?.getBoundingClientRect();
+      const modeRect = document.querySelector('.mode-selector')?.getBoundingClientRect();
+      const hudRect = document.querySelector('.hud-panel')?.getBoundingClientRect();
+      const setupRect = document.querySelector('.setup-panel')?.getBoundingClientRect();
+      return {
+        innerWidth: window.innerWidth,
+        innerHeight: window.innerHeight,
+        scrollWidth: document.documentElement.scrollWidth,
+        scrollHeight: document.documentElement.scrollHeight,
+        headerInnerWidth: headerRect && headerCs
+          ? headerRect.width - parseFloat(headerCs.paddingLeft) - parseFloat(headerCs.paddingRight)
+          : 0,
+        titleHeight: titleRect?.height || 0,
+        statsRect: statsRect && { left: statsRect.left, right: statsRect.right, width: statsRect.width },
+        modeWidth: modeRect?.width || 0,
+        hudRight: hudRect?.right || 0,
+        setupLeft: setupRect?.left || 0,
+      };
+    })()`);
+
+    assert.ok(
+      m.scrollWidth <= m.innerWidth,
+      `${vp.key} idle horizontal overflow: ${m.scrollWidth} > ${m.innerWidth}`
+    );
+    assert.ok(
+      m.scrollHeight <= m.innerHeight,
+      `${vp.key} idle vertical overflow: ${m.scrollHeight} > ${m.innerHeight}`
+    );
+
+    if (vp.key === 'mobile320') {
+      assert.ok(m.statsRect.left >= 12 && m.statsRect.right <= 308, `320px stats margins broken: ${JSON.stringify(m.statsRect)}`);
+      assert.ok(Math.abs(m.statsRect.width - m.modeWidth) <= 2, `320px stats/mode width mismatch: ${m.statsRect.width} vs ${m.modeWidth}`);
+      assert.ok(m.titleHeight <= 36, `320px title wrapped to height ${m.titleHeight}px`);
+    } else if (vp.key === 'landscape667') {
+      assert.ok(m.setupLeft >= m.hudRight - 2, `667x375 idle not two-column: setupLeft=${m.setupLeft} hudRight=${m.hudRight}`);
+    } else if (vp.key === 'desktop1440') {
+      assert.ok(Math.abs(m.statsRect.width - m.modeWidth) <= 2, `1440px stats/mode width mismatch: ${m.statsRect.width} vs ${m.modeWidth}`);
+      assert.ok(Math.abs(m.headerInnerWidth - m.statsRect.width) <= 4, `1440px header/stats width mismatch: ${m.headerInnerWidth} vs ${m.statsRect.width}`);
+    }
+
+    await cdp.screenshot(screenshotsDir, vp.shot);
+    results[vp.key] = {
+      scroll: `${m.scrollWidth}x${m.scrollHeight}`,
+      statsWidth: Math.round(m.statsRect.width),
+    };
+  }
+
+  await setViewport(cdp, 430, 820, true);
+  return results;
+}
+
+async function verifyResponsiveGameplay(cdp, screenshotsDir) {
+  const results = {};
+  const specs = [
+    { key: 'mobile320', width: 320, height: 568, mobile: true, shot: '10_play_320.png' },
+    { key: 'landscape667', width: 667, height: 375, mobile: true, shot: '11_play_landscape_667.png' },
+    { key: 'desktop1440', width: 1440, height: 900, mobile: false, shot: '12_play_desktop_1440.png' },
+  ];
+
+  for (const vp of specs) {
+    await setViewport(cdp, vp.width, vp.height, vp.mobile);
+    const m = await cdp.eval(`(() => {
+      const tileRect = document.querySelector('button.tile')?.getBoundingClientRect();
+      const hudRect = document.querySelector('.hud-panel')?.getBoundingClientRect();
+      const boardRect = document.querySelector('.board-stage')?.getBoundingClientRect();
+      const gridRect = document.querySelector('.grid-container')?.getBoundingClientRect();
+      return {
+        innerWidth: window.innerWidth,
+        innerHeight: window.innerHeight,
+        scrollWidth: document.documentElement.scrollWidth,
+        scrollHeight: document.documentElement.scrollHeight,
+        tileW: tileRect?.width || 0,
+        tileH: tileRect?.height || 0,
+        hudRight: hudRect?.right || 0,
+        boardLeft: boardRect?.left || 0,
+        gridLeft: gridRect?.left || 0,
+      };
+    })()`);
+
+    assert.ok(
+      m.scrollWidth <= m.innerWidth,
+      `${vp.key} gameplay horizontal overflow: ${m.scrollWidth} > ${m.innerWidth}`
+    );
+    assert.ok(
+      m.scrollHeight <= m.innerHeight,
+      `${vp.key} gameplay vertical overflow: ${m.scrollHeight} > ${m.innerHeight}`
+    );
+    assert.ok(
+      Math.abs(m.tileW - m.tileH) <= 1,
+      `${vp.key} tile not square: ${m.tileW}x${m.tileH}`
+    );
+
+    if (vp.key === 'landscape667') {
+      assert.ok(m.boardLeft >= m.hudRight - 2, `667x375 play not two-column: boardLeft=${m.boardLeft} hudRight=${m.hudRight}`);
+      assert.ok(m.tileW >= 70, `667x375 3x3 tile too small: ${m.tileW}px`);
+    } else if (vp.key === 'desktop1440') {
+      assert.ok(m.tileW >= 90, `1440x900 3x3 tile too small: ${m.tileW}px`);
+    }
+
+    await cdp.screenshot(screenshotsDir, vp.shot);
+    results[vp.key] = {
+      scroll: `${m.scrollWidth}x${m.scrollHeight}`,
+      tilePx: Math.round(m.tileW),
+    };
+  }
+
+  await setViewport(cdp, 430, 820, true);
+  return results;
+}
+
 async function main() {
   const { url: providedUrl, screenshotsDir } = parseArgs(process.argv.slice(2));
   let staticServer = null;
@@ -367,6 +502,7 @@ async function main() {
     assert.match(hudIdle, /LEVEL 1.*SCORE 0.*TILES 0 \/ 3/i);
     const lightIdleContrast = await verifyIdleThemeContrast(cdp, 'light');
     await cdp.screenshot(screenshotsDir, '1_idle_light.png');
+    const responsiveIdleChecks = await verifyResponsiveIdle(cdp, screenshotsDir);
 
     // 2. Toggle theme to dark mode, verify contrast after 0.3s transition, & verify mute toggle persistence
     const initialDark = await cdp.eval(`document.documentElement.classList.contains('dark')`);
@@ -450,6 +586,7 @@ async function main() {
     const hudMidInput = await cdp.eval(`document.querySelector('.stats')?.innerText?.replace(/\\s+/g, ' ').trim()`);
     assert.match(hudMidInput, /TILES 1 \/ 3/i);
     await cdp.screenshot(screenshotsDir, '2_input_dark.png');
+    const responsivePlayChecks = await verifyResponsiveGameplay(cdp, screenshotsDir);
 
     await cdp.eval(`document.querySelector('button[data-tile-id="${seq1[1]}"]')?.click()`);
     await cdp.eval(`document.querySelector('button[data-tile-id="${seq1[2]}"]')?.click()`);
@@ -732,6 +869,10 @@ async function main() {
               darkSelectedVsIdle: darkSelectedCr,
               lightLitVsIdle: lightLitCr,
               lightSelectedVsIdle: lightSelectedCr,
+            },
+            responsiveChecks: {
+              idle: responsiveIdleChecks,
+              gameplay: responsivePlayChecks,
             },
             review,
             consoleErrors: 0,

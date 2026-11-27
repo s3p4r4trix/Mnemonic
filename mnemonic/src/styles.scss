@@ -3,10 +3,18 @@
 @use './assets/_theme.scss' as theme;
 @include mat.core();
 
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 html {
   color-scheme: light;
   background-color: var(--mat-sys-surface);
   color: var(--mat-sys-on-surface);
+  min-height: 100%;
+  --page-max-width: 480px;
 
   @include mat.theme(
     (
@@ -24,6 +32,18 @@ html {
   @include theme.game-tokens();
 }
 
+@media (min-width: 768px) {
+  html {
+    --page-max-width: 540px;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  html {
+    --page-max-width: 720px;
+  }
+}
+
 html.light {
   color-scheme: light;
 }
@@ -35,6 +55,8 @@ html.dark {
 // General body styles
 body {
   margin: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
   font-family: Roboto, "Helvetica Neue", sans-serif;
   background-color: var(--mat-sys-surface);
   color: var(--mat-sys-on-surface);
@@ -46,8 +68,4 @@ body {
   body {
     transition: none;
   }
-}
-
-html, body {
-  height: 100%;
 }

@@ -1,11 +1,11 @@
 # Mnemonic Trainer Roadmap
 
-Planned improvements ordered by priority. Completed Phase 1 work (responsive grid, compact header, cancellable playback, HUD progress, round-cleared transition, Game Over review overlays, keyboard navigation, `OnPush`, live-browser E2E checks, and GitHub Actions CI/Pages), Phase 2 work (Web Audio pentatonic tones and mute toggle, `localStorage` stats and stats dialog, and consecutive in-sequence streak multiplier), completed Phase 3 work (mode selector for Classic, Reverse Recall, Strict Order, Spatial Flash, per-mode stats, Relaxed/Normal/Speed presets with optional progressive speed-up, and date-seeded Daily Challenge with streak tracking, shareable summary cards, and a 12-week Stats heatmap), and PR 1 of Phase 3.5 (unified Ink & Iris theme tokens, WCAG contrast fixes, primary CTA hierarchy, real bold weights with tabular numerals, and automated E2E contrast checks) have been removed.
+Planned improvements ordered by priority. Completed Phase 1 work (responsive grid, compact header, cancellable playback, HUD progress, round-cleared transition, Game Over review overlays, keyboard navigation, `OnPush`, live-browser E2E checks, and GitHub Actions CI/Pages), Phase 2 work (Web Audio pentatonic tones and mute toggle, `localStorage` stats and stats dialog, and consecutive in-sequence streak multiplier), completed Phase 3 work (mode selector for Classic, Reverse Recall, Strict Order, Spatial Flash, per-mode stats, Relaxed/Normal/Speed presets with optional progressive speed-up, and date-seeded Daily Challenge with streak tracking, shareable summary cards, and a 12-week Stats heatmap), and Phase 3.5 PR 1 and PR 2 (unified Ink & Iris theme tokens, WCAG contrast gates, fluid CSS `aspect-ratio` grid, `border-box`, `100dvh`, safe-area insets, aligned columns, two-column short-landscape playfield, and multi-viewport overflow checks) have been removed.
 
 ## Phase 3.5: Design System and Responsive Overhaul (Next)
 
-- **PR 2: Fluid CSS grid and landscape layout.** Add global `border-box`, `100dvh`, safe-area insets, CSS `aspect-ratio` grid sizing (fitting up to `8x8` on `320px` screens), aligned page columns, a two-column short-landscape playfield, and multi-viewport overflow checks in `e2e-check.mjs`.
 - **PR 3: Dialogs, touch targets, and review UX.** Make Game Over and Stats dialogs scrollable on short landscape and `320px` screens, add tap-inspectable heatmap details, enforce `44px` minimum touch targets, extend `prefers-reduced-motion`, and show the review board above setup controls on `over`.
+- **PR 4: Motion tokens and tactile micro-interactions.** Centralize pure-CSS motion tokens (`--motion-dur-*`, `--motion-ease-*`) in `mnemonic/src/assets/_theme.scss` with one global `prefers-reduced-motion` zero-out, then implement the scoped transitions in `DESIGN.md` (`Motion system (PR 4 specification)`): sliding active pills on segmented controls, wrong-tap horizontal shake (`280ms`), badge pop-in (`Streak`, `Round Cleared!`), status prompt swap, header icon swap, and subtle `Level`/`Score` tick. Preserve snappy `.tile.lit` timing (`MIN_TILE_LIT_MS = 220ms`) and skip decorative distractions (`3D tilt`, confetti, shimmer, custom modal overrides).
 
 ## Phase 3: Game Modes and Replayability
 
@@ -19,6 +19,6 @@ Planned improvements ordered by priority. Completed Phase 1 work (responsive gri
 
 ## Phase 5: Platform, Accessibility, and Analytics
 
-- **Accessibility and motion polish.** Colorblind-safe tile patterns for hit, miss, and wrong states, plus `prefers-reduced-motion` support.
+- **Accessibility tile patterns.** Colorblind-safe tile patterns for hit, miss, and wrong states (complementary to sequence numbers and badges).
 - **PWA and offline support.** Add `@angular/pwa` (web manifest and service worker) for home-screen install and offline play.
 - **Haptics and cognitive analytics.** Optional `navigator.vibrate()` on mobile taps and a lightweight progress chart tracking working-memory span and recall time across sessions.

@@ -74,27 +74,6 @@ describe("GameService", () => {
     });
   });
 
-  describe("Responsive Viewport Sizing", () => {
-    it("should recalculate tileSize when viewport dimensions change", () => {
-      service.gridSize.set(5);
-      service.updateViewport(1200, 900);
-      const desktopSize = service.tileSize();
-
-      service.updateViewport(360, 640);
-      const mobileSize = service.tileSize();
-
-      expect(desktopSize).toBe(80);
-      expect(mobileSize).toBeLessThan(desktopSize);
-      expect(mobileSize).toBeGreaterThanOrEqual(40);
-    });
-
-    it("should clamp tileSize against viewport height on short landscape screens", () => {
-      service.gridSize.set(5);
-      service.updateViewport(1200, 520);
-      expect(service.tileSize()).toBe(40);
-    });
-  });
-
   describe("startGame", () => {
     it("should set gameState to sequence", () => {
       service.startGame();

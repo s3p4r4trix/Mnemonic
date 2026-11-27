@@ -1,117 +1,131 @@
-<div class="game-area">
-  <div class="stats" aria-label="Game statistics">
-    <div class="stat-item">
-      <span class="stat-label">Level</span>
-      <span class="stat-value">{{ gameService.currentLevel() }}</span>
+<div
+  class="game-area"
+  [class.is-idle]="gameService.gameState() === 'idle'"
+  [class.is-playing]="gameService.gameState() !== 'idle' && gameService.gameState() !== 'over'"
+  [class.is-over]="gameService.gameState() === 'over'">
+  <div class="hud-panel">
+    <div class="stats" aria-label="Game statistics">
+      <div class="stat-item">
+        <span class="stat-label">Level</span>
+        <span class="stat-value">{{ gameService.currentLevel() }}</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Score</span>
+        <span class="stat-value">{{ gameService.score() }}</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Best</span>
+        <span class="stat-value">{{ gameService.isDailyChallenge() ? dailyService.bestScore() : statsService.bestScore() }}</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Tiles</span>
+        <span class="stat-value">{{ gameService.selectedCount() }} / {{ gameService.numTilesToLight() }}</span>
+      </div>
     </div>
-    <div class="stat-item">
-      <span class="stat-label">Score</span>
-      <span class="stat-value">{{ gameService.score() }}</span>
-    </div>
-    <div class="stat-item">
-      <span class="stat-label">Best</span>
-      <span class="stat-value">{{ gameService.isDailyChallenge() ? dailyService.bestScore() : statsService.bestScore() }}</span>
-    </div>
-    <div class="stat-item">
-      <span class="stat-label">Tiles</span>
-      <span class="stat-value">{{ gameService.selectedCount() }} / {{ gameService.numTilesToLight() }}</span>
-    </div>
+
+    @if (gameService.streak() > 0 || gameService.isUnrankedRetry() || gameService.isDailyChallenge()) {
+      <div class="badges-row" role="group" aria-label="Active run badges">
+        @if (gameService.isDailyChallenge()) {
+          <span class="daily-badge">Daily {{ gameService.activeDailyDateKey() }}</span>
+        }
+        @if (gameService.streak() > 0) {
+          <span class="streak-badge" [class.has-multiplier]="gameService.currentMultiplier() > 1">
+            Streak {{ gameService.streak() }}
+            @if (gameService.currentMultiplier() > 1) {
+              <span>&middot; {{ gameService.currentMultiplier() }}x</span>
+            }
+          </span>
+        }
+        @if (gameService.isUnrankedRetry()) {
+          <span class="unranked-badge">{{ gameService.isDailyChallenge() ? 'Unranked Replay' : 'Unranked Retry' }}</span>
+        }
+      </div>
+    }
   </div>
 
-  @if (gameService.streak() > 0 || gameService.isUnrankedRetry() || gameService.isDailyChallenge()) {
-    <div class="badges-row" role="group" aria-label="Active run badges">
-      @if (gameService.isDailyChallenge()) {
-        <span class="daily-badge">Daily {{ gameService.activeDailyDateKey() }}</span>
-      }
-      @if (gameService.streak() > 0) {
-        <span class="streak-badge" [class.has-multiplier]="gameService.currentMultiplier() > 1">
-          Streak {{ gameService.streak() }}
-          @if (gameService.currentMultiplier() > 1) {
-            <span>&middot; {{ gameService.currentMultiplier() }}x</span>
-          }
-        </span>
-      }
-      @if (gameService.isUnrankedRetry()) {
-        <span class="unranked-badge">{{ gameService.isDailyChallenge() ? 'Unranked Replay' : 'Unranked Retry' }}</span>
-      }
-    </div>
-  }
-
   @if (gameService.gameState() === 'idle' || gameService.gameState() === 'over') {
-    <div class="mode-picker">
-      <div class="mode-selector" role="radiogroup" aria-label="Game mode">
-        @for (mode of modes; track mode.id) {
-          <button
-            type="button"
-            class="mode-pill"
-            role="radio"
-            [attr.aria-checked]="gameService.mode() === mode.id"
-            [class.active]="gameService.mode() === mode.id"
-            (click)="selectMode(mode.id)">
-            {{ mode.shortLabel }}
-          </button>
+    <div class="setup-panel">
+      <div class="mode-picker">
+        <div class="mode-selector" role="radiogroup" aria-label="Game mode">
+          @for (mode of modes; track mode.id) {
+            <button
+              type="button"
+              class="mode-pill"
+              role="radio"
+              [attr.aria-checked]="gameService.mode() === mode.id"
+              [class.active]="gameService.mode() === mode.id"
+              (click)="selectMode(mode.id)">
+              {{ mode.shortLabel }}
+            </button>
+          }
+        </div>
+        @if (gameService.gameState() === 'idle') {
+          <p class="mode-description">{{ gameService.modeConfig().description }}</p>
         }
       </div>
-      @if (gameService.gameState() === 'idle') {
-        <p class="mode-description">{{ gameService.modeConfig().description }}</p>
-      }
-    </div>
 
-    <div class="speed-picker">
-      <div class="speed-selector" role="radiogroup" aria-label="Speed preset">
-        @for (preset of speedPresets; track preset.id) {
-          <button
-            type="button"
-            class="mode-pill"
-            role="radio"
-            [attr.aria-checked]="gameService.speedPreset() === preset.id"
-            [class.active]="gameService.speedPreset() === preset.id"
-            (click)="selectSpeedPreset(preset.id)">
-            {{ preset.label }}
-          </button>
-        }
-      </div>
-      <button
-        type="button"
-        class="progressive-toggle"
-        role="switch"
-        [attr.aria-checked]="gameService.progressiveSpeed()"
-        [class.active]="gameService.progressiveSpeed()"
-        (click)="toggleProgressiveSpeed()">
-        Speed up each level
-      </button>
-    </div>
-
-    <div class="game-actions">
-      <button matButton="filled" (click)="startGame()">
-        Start Game
-      </button>
-      <button
-        matButton="tonal"
-        id="daily-challenge-button"
-        type="button"
-        (click)="startDailyChallenge()">
-        @if (dailyService.hasCompletedToday()) {
-          Daily Done ({{ dailyService.todayResult()?.score }})
-        } @else if (dailyService.currentStreak() > 0) {
-          Daily Challenge ({{ dailyService.currentStreak() }}d)
-        } @else {
-          Daily Challenge
-        }
-      </button>
-      @if (gameService.gameState() === 'over' && !gameService.isDailyChallenge()) {
-        <button matButton="tonal" (click)="retryLevel()">
-          Retry Level
+      <div class="speed-picker">
+        <div class="speed-selector" role="radiogroup" aria-label="Speed preset">
+          @for (preset of speedPresets; track preset.id) {
+            <button
+              type="button"
+              class="mode-pill"
+              role="radio"
+              [attr.aria-checked]="gameService.speedPreset() === preset.id"
+              [class.active]="gameService.speedPreset() === preset.id"
+              (click)="selectSpeedPreset(preset.id)">
+              {{ preset.label }}
+            </button>
+          }
+        </div>
+        <button
+          type="button"
+          class="progressive-toggle"
+          role="switch"
+          [attr.aria-checked]="gameService.progressiveSpeed()"
+          [class.active]="gameService.progressiveSpeed()"
+          (click)="toggleProgressiveSpeed()">
+          Speed up each level
         </button>
-      }
+      </div>
+
+      <div class="game-actions">
+        <button matButton="filled" (click)="startGame()">
+          Start Game
+        </button>
+        <button
+          matButton="tonal"
+          id="daily-challenge-button"
+          type="button"
+          (click)="startDailyChallenge()">
+          @if (dailyService.hasCompletedToday()) {
+            Daily Done ({{ dailyService.todayResult()?.score }})
+          } @else if (dailyService.currentStreak() > 0) {
+            Daily Challenge ({{ dailyService.currentStreak() }}d)
+          } @else {
+            Daily Challenge
+          }
+        </button>
+        @if (gameService.gameState() === 'over' && !gameService.isDailyChallenge()) {
+          <button matButton="tonal" (click)="retryLevel()">
+            Retry Level
+          </button>
+        }
+      </div>
     </div>
   }
 
   @if (gameService.gameState() !== 'idle') {
-    <app-grid></app-grid>
+    <div class="board-stage">
+      <app-grid></app-grid>
+    </div>
   }
 
-  <div class="message" role="status" aria-live="polite">
+  <div
+    class="message"
+    role="status"
+    aria-live="polite"
+    [class.is-empty]="gameService.gameState() === 'idle' || gameService.gameState() === 'over'">
     @if (gameService.gameState() === 'sequence') {
       <span>Memorize the sequence...</span>
     } @else if (gameService.gameState() === 'input') {
