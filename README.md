@@ -23,7 +23,7 @@ After playback finishes, select the tiles that lit up:
   - `src/app/services/` holds `GameService` (signals and round state), `DailyChallengeService` (daily challenge history and streaks), `SoundService` (Web Audio pentatonic tones), and `StatsService` (`localStorage` history per mode).
   - `src/app/models/` defines `DailyRunResult`, `GameMode`, `SpeedPreset`, `Tile`, and stats types.
   - `src/app/utils/daily-rng.ts` provides the seeded PRNG, daily streak calculation, heatmap grid builder, and share text formatting.
-  - `src/app/components/` holds `GameComponent`, `GridComponent`, `TileComponent`, `GameOverDialogComponent`, and `StatsDialogComponent`.
+  - `src/app/components/` holds `GameComponent`, `GridComponent`, `TileComponent`, `IconComponent`, `GameOverDialogComponent`, and `StatsDialogComponent`.
   - `scripts/e2e-check.mjs` and `scripts/e2e/` run the zero-dependency Node 22 and Chrome DevTools Protocol E2E suite.
 - `docs/` is git-ignored build output generated locally by `npm run build` and built in CI for GitHub Pages.
 - `.github/workflows/ci-deploy.yml` defines the CI and GitHub Pages deployment workflow.
