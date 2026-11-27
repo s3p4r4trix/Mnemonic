@@ -7,7 +7,9 @@
     "build": "ng build --base-href=./",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
-    "test:e2e": "node scripts/e2e-check.mjs"
+    "test:ci": "ng test --watch=false --browsers=ChromeHeadless",
+    "test:e2e": "node scripts/e2e-check.mjs",
+    "verify": "npm run test:ci && npm run build && npm run test:e2e"
   },
   "private": true,
   "dependencies": {

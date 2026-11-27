@@ -1,54 +1,34 @@
 # Mnemonic agent guidelines
 
-This file defines repository rules for coding agents in Mnemonic.
-
 ## Source-of-truth documents
 
-Read the relevant specification before you change behavior, layout, or styles:
+- Read [DESIGN.md](DESIGN.md) before changing themes, colors, layout, responsive rules, or motion.
+- Read [ROADMAP.md](ROADMAP.md) for phase order and milestone scope.
+- Read [README.md](README.md) for game rules and repository layout.
 
-- Before you edit themes, colors, layout, responsive behavior, or motion, read [DESIGN.md](DESIGN.md). It defines Ink & Iris tokens, WCAG contrast gates, responsive targets, and motion guardrails.
-- Read [ROADMAP.md](ROADMAP.md) for current phase order and milestone scope.
-- Read [README.md](README.md) for game rules and the repository layout.
+## Workflow and branch hygiene
+
+- Check `git status` before editing. Create a feature branch off `origin/main` before changing files, and use a separate `git worktree` if another session has uncommitted changes in the root checkout.
+- Before opening a feature pull request, update [ROADMAP.md](ROADMAP.md), plus [README.md](README.md) or [DESIGN.md](DESIGN.md) when player behavior or visual contracts change.
+- Run one independent read-only diff review that checks edge cases, ARIA markup, and E2E timing before opening a pull request.
 
 ## Build and output layout
 
-The Angular 22 application lives in `mnemonic/`, and GitHub Pages serves the production bundle from `docs/`. Follow these rules for builds and generated output:
-
-- Run all `npm` and `ng` commands from `mnemonic/` with `NG_CLI_ANALYTICS=false` so `mnemonic/angular.json` stays clean.
-- Do not edit files in `docs/` by hand.
-- On every app change, rebuild `docs/` with `NG_CLI_ANALYTICS=false npm run build` and commit the updated output.
-- Keep every component stylesheet within the `4.00 kB` warning budget in `mnemonic/angular.json`. A component stylesheet at `8.00 kB` fails the build, and the initial bundle warns at `500 kB`.
+- Run `npm` and `ng` commands from `mnemonic/`. Angular CLI analytics is disabled in `mnemonic/angular.json`.
+- `npm run build` writes the production bundle to the git-ignored `docs/` directory for local E2E runs. Do not track or commit `docs/`.
+- `.github/workflows/ci-deploy.yml` builds and deploys `docs/` to GitHub Pages on pushes to `main`.
+- Keep each component stylesheet under `7 kB` and the initial bundle under `625 kB` in `mnemonic/angular.json`. Builds fail at `12 kB` and `1 MB`.
 
 ## Architecture guardrails
 
-Follow these rules across `mnemonic/src/` and `mnemonic/scripts/`:
-
 - Write Angular 22 standalone components with `ChangeDetectionStrategy.OnPush`, `inject()`, and signals.
-- Because `mnemonic/src/app/app.config.ts` enables `provideZonelessChangeDetection()`, drive all template state through signals. Plain property mutations do not trigger change detection.
-- Satisfy strict TypeScript and `strictTemplates` in `mnemonic/tsconfig.json`. Match the single-quote, 2-space settings in `mnemonic/.editorconfig`.
-- Apply `.light` and `.dark` theme classes to the `<html>` element through `document.documentElement`, never to `<body>`.
-- Use `--mat-sys-*` and `--game-*` tokens for styles. Do not introduce legacy `--md-sys-color-*` tokens.
-- Do not add runtime dependencies for UI behavior or animations that CSS can solve.
-- Keep `mnemonic/scripts/e2e-check.mjs` free of external packages. Use only Node 22 built-in APIs and Chrome DevTools Protocol in that script.
+- Drive template state through signals because `mnemonic/src/app/app.config.ts` enables `provideZonelessChangeDetection()`.
+- Satisfy strict TypeScript and `strictTemplates` in `mnemonic/tsconfig.json`, and match `mnemonic/.editorconfig` using single quotes and 2-space indentation.
+- Apply `.light` and `.dark` theme classes to `document.documentElement`, never to `<body>`.
+- Use `--mat-sys-*` and `--game-*` tokens, never `--md-sys-color-*`.
+- Do not add runtime dependencies for UI behavior or CSS animations.
+- Use only Node 22 built-in APIs and Chrome DevTools Protocol in `mnemonic/scripts/e2e-check.mjs` and `mnemonic/scripts/e2e/`.
 
 ## Verification before a pull request
 
-Run these commands in order from `mnemonic/` before you open a pull request:
-
-1. Run the headless Karma unit tests:
-
-   ```bash
-   NG_CLI_ANALYTICS=false npx ng test --watch=false --browsers=ChromeHeadless
-   ```
-
-2. Because `mnemonic/scripts/e2e-check.mjs` serves `../docs`, build the production bundle into `docs/` before you run E2E:
-
-   ```bash
-   NG_CLI_ANALYTICS=false npm run build
-   ```
-
-3. Run the live-browser E2E suite against the fresh build:
-
-   ```bash
-   npm run test:e2e
-   ```
+Run `npm run verify` from `mnemonic/` before opening a pull request. It runs `npm run test:ci` for Karma unit tests, `npm run build` into `docs/`, and `npm run test:e2e` against `../docs`.

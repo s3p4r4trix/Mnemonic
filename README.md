@@ -14,16 +14,21 @@ After playback finishes, select the tiles that lit up:
 - **Game modes.** **Classic** awards 2 points per in-order tile and 1 point per out-of-order tile. **Reverse Recall** scores the sequence in reverse order. **Strict Order** requires exact order and ends the run on the first wrong tap. **Spatial Flash** scores 1 point per target tile in any order.
 - **Starting state and streaks.** Level 1 starts on a 3x3 grid with 3 tiles in the sequence. Consecutive cleared rounds build a streak multiplier up to `2x`.
 - **Level progression.** Clearing a round increases the level by 1 and adds 1 tile to the sequence. When the sequence length exceeds half of the tiles on the grid, the grid size increases by 1.
-- **Game over.** Picking a tile outside the sequence ends the round once your selection count reaches the sequence length (or immediately in Strict Order). You can start a new game at level 1 or retry the failed level unranked with a new sequence.
+- **Game over.** Picking a tile outside the sequence ends the round once your selection count reaches the sequence length, or immediately in Strict Order. You can start a new game at level 1 or retry the failed level unranked with a new sequence.
+- **Daily Challenge.** Plays a deterministic Classic run at Normal speed seeded by the local `YYYY-MM-DD` date. Your first completed attempt locks the day's official score and updates your daily streak and 12-week tap-inspectable heatmap in **Stats**, while later attempts play unranked with a shareable official summary card.
 
 ## Repository layout
 
-- `mnemonic/` holds the Angular application, unit tests, and live-browser E2E script.
-  - `src/app/services/` holds `GameService` (signals and round state), `SoundService` (Web Audio pentatonic tones), and `StatsService` (`localStorage` history per mode).
-  - `src/app/models/` defines `GameMode`, `SpeedPreset`, `Tile`, and stats types.
+- `mnemonic/` holds the Angular application, unit tests, and live-browser E2E scripts.
+  - `src/app/services/` holds `GameService` (signals and round state), `DailyChallengeService` (daily challenge history and streaks), `SoundService` (Web Audio pentatonic tones), and `StatsService` (`localStorage` history per mode).
+  - `src/app/models/` defines `DailyRunResult`, `GameMode`, `SpeedPreset`, `Tile`, and stats types.
+  - `src/app/utils/daily-rng.ts` provides the seeded PRNG, daily streak calculation, heatmap grid builder, and share text formatting.
   - `src/app/components/` holds `GameComponent`, `GridComponent`, `TileComponent`, `GameOverDialogComponent`, and `StatsDialogComponent`.
-- `docs/` holds the compiled static production bundle served by GitHub Pages.
+  - `scripts/e2e-check.mjs` and `scripts/e2e/` run the zero-dependency Node 22 and Chrome DevTools Protocol E2E suite.
+- `docs/` is git-ignored build output generated locally by `npm run build` and built in CI for GitHub Pages.
 - `.github/workflows/ci-deploy.yml` defines the CI and GitHub Pages deployment workflow.
+- [AGENTS.md](AGENTS.md) defines repository rules for coding agents.
+- [DESIGN.md](DESIGN.md) defines the Ink & Iris color tokens, contrast gates, responsive targets, and motion rules.
 - [ROADMAP.md](ROADMAP.md) lists planned work.
 - [LICENSE](LICENSE) contains the GNU General Public License v3.0.
 
@@ -45,7 +50,7 @@ npm start
 Run the unit tests once in headless Chrome:
 
 ```bash
-npx ng test --watch=false --browsers=ChromeHeadless
+npm run test:ci
 ```
 
 Build the production bundle into `docs/`:
@@ -54,15 +59,21 @@ Build the production bundle into `docs/`:
 npm run build
 ```
 
-Run the live-browser E2E check against the built bundle (or pass `--url http://127.0.0.1:4200` against a running dev server):
+Run the live-browser E2E check against the built bundle, or pass `--url http://127.0.0.1:4200` against a running dev server:
 
 ```bash
 npm run test:e2e
 ```
 
+Run the full verification suite (`test:ci`, `build`, and `test:e2e`) in one command:
+
+```bash
+npm run verify
+```
+
 ## CI and deployment
 
-On every push and pull request to `main`, `.github/workflows/ci-deploy.yml` runs the headless unit tests, builds the production bundle, and runs `npm run test:e2e`. Pushes to `main` also deploy the `docs/` bundle to GitHub Pages.
+On every push and pull request to `main`, `.github/workflows/ci-deploy.yml` runs `npm run test:ci`, `npm run build`, and `npm run test:e2e`. Pushes to `main` also deploy the built `docs/` artifact to GitHub Pages.
 
 ## License
 
