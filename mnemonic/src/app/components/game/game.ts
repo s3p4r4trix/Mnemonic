@@ -10,12 +10,13 @@ import {GridComponent} from "../grid/grid";
 import {MatDialog, MatDialogModule} from "@angular/material/dialog";
 import {MatButtonModule} from "@angular/material/button";
 import {GameOverDialogComponent} from "../game-over-dialog/game-over-dialog";
+import {IconComponent} from "../icon/icon";
 
 const ROUND_CLEARED_MS = 800;
 
 @Component({
   selector: "app-game",
-  imports: [GridComponent, MatDialogModule, MatButtonModule],
+  imports: [GridComponent, IconComponent, MatDialogModule, MatButtonModule],
   templateUrl: './game.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrls: ['./game.scss']

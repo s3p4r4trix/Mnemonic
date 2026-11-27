@@ -126,6 +126,10 @@
   background: var(--mat-sys-primary-container);
   color: var(--mat-sys-on-primary-container);
   font-size: 0.82rem;
+
+  app-icon {
+    --icon-size: 14px;
+  }
 }
 
 .daily-badge,
@@ -180,16 +184,29 @@
 }
 
 .progressive-toggle {
+  gap: 6px;
   border: 1px solid var(--mat-sys-outline);
   border-radius: 999px;
   padding: 6px 14px;
   font-size: 0.82rem;
+
+  app-icon {
+    --icon-size: 16px;
+  }
 
   &.active {
     background: var(--mat-sys-primary-container);
     color: var(--mat-sys-on-primary-container);
     border-color: transparent;
     font-weight: 600;
+  }
+}
+
+@media (max-width: 380px) {
+  .game-actions {
+    gap: 8px;
+    --mat-button-filled-horizontal-padding: 16px;
+    --mat-button-tonal-horizontal-padding: 16px;
   }
 }
 

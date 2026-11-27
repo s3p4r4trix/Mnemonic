@@ -148,4 +148,53 @@ describe('GameOverDialogComponent', () => {
     expect(fallback).not.toBeNull();
     expect(fallback?.value).toContain('Score: 6');
   });
+
+  it('should render inline SVG icons on dialog pills and actions and swap copy icon to check on Copied!', async () => {
+    const host = fixture.nativeElement as HTMLElement;
+    gameService.lastRunWasNewBest.set(true);
+    fixture.detectChanges();
+
+    expect(host.querySelector('.new-best-pill app-icon[data-icon="trophy"] svg')).not.toBeNull();
+    const retryBtn = Array.from(host.querySelectorAll('button')).find(
+      b => b.textContent?.trim() === 'Retry Level'
+    );
+    const playBtn = Array.from(host.querySelectorAll('button')).find(
+      b => b.textContent?.trim() === 'Play Again'
+    );
+    const closeBtn = Array.from(host.querySelectorAll('button')).find(
+      b => b.textContent?.trim() === 'Close'
+    );
+    expect(retryBtn?.querySelector('app-icon[data-icon="retry"] svg')).not.toBeNull();
+    expect(playBtn?.querySelector('app-icon[data-icon="play"] svg')).not.toBeNull();
+    expect(closeBtn?.querySelector('svg')).toBeNull();
+
+    const date = new Date(2026, 10, 26, 10, 0);
+    gameService.startDailyChallenge(date);
+    const seq1 = [...gameService.getSequence()];
+    gameService.gameState.set('input');
+    seq1.forEach(id => gameService.handlePlayerTileClick(id));
+    gameService.advanceToNextRound();
+
+    const seq2 = [...gameService.getSequence()];
+    const wrong = gameService.tiles().find(t => !seq2.includes(t.id))!;
+    gameService.gameState.set('input');
+    seq2.slice(0, seq2.length - 1).forEach(id => gameService.handlePlayerTileClick(id));
+    gameService.handlePlayerTileClick(wrong.id);
+    fixture.detectChanges();
+
+    expect(host.querySelector('.daily-streak-pill app-icon[data-icon="flame"] svg')).not.toBeNull();
+    expect(host.querySelector('#copy-daily-result-button app-icon[data-icon="copy"] svg')).not.toBeNull();
+    const replayBtn = Array.from(host.querySelectorAll('button')).find(
+      b => b.textContent?.trim() === 'Replay Daily'
+    );
+    expect(replayBtn?.querySelector('app-icon[data-icon="retry"] svg')).not.toBeNull();
+
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText: jasmine.createSpy('writeText').and.returnValue(Promise.resolve()) },
+      configurable: true,
+    });
+    await component.onCopyDailyResult();
+    fixture.detectChanges();
+    expect(host.querySelector('#copy-daily-result-button app-icon[data-icon="check"] svg')).not.toBeNull();
+  });
 });

@@ -43,10 +43,15 @@ describe("GridComponent", () => {
     expect(grid).toBeTruthy();
   });
 
-  it("should display sequence numbers and colorblind-safe badges on Game Over", () => {
+  it("should display sequence numbers and inline SVG review markers on Game Over while keeping active tiles icon-free", () => {
     gameService.startGame();
     const seq = gameService.getSequence();
     gameService.gameState.set("input");
+    fixture.detectChanges();
+
+    const host: HTMLElement = fixture.nativeElement;
+    expect(host.querySelectorAll("button.tile svg").length).toBe(0);
+
     const wrongTile = gameService.tiles().find(t => !seq.includes(t.id))!;
 
     gameService.handlePlayerTileClick(seq[0]);
@@ -54,15 +59,17 @@ describe("GridComponent", () => {
     gameService.handlePlayerTileClick(wrongTile.id);
     fixture.detectChanges();
 
-    const host: HTMLElement = fixture.nativeElement;
     const hitBtn = host.querySelector(`button[data-tile-id="${seq[0]}"]`) as HTMLElement;
     const missedBtn = host.querySelector(`button[data-tile-id="${seq[2]}"]`) as HTMLElement;
     const wrongBtn = host.querySelector(`button[data-tile-id="${wrongTile.id}"]`) as HTMLElement;
 
     expect(hitBtn.textContent).toContain("1");
-    expect(hitBtn.textContent).toContain("✓");
+    expect(hitBtn.textContent).not.toContain("✓");
+    expect(hitBtn.querySelector('.tile-badge-hit app-icon[data-icon="check"] svg')).not.toBeNull();
     expect(missedBtn.textContent).toContain("3");
-    expect(wrongBtn.textContent).toContain("×");
+    expect(missedBtn.querySelector("svg")).toBeNull();
+    expect(wrongBtn.textContent).not.toContain("×");
+    expect(wrongBtn.querySelector('.tile-badge-miss app-icon[data-icon="x"] svg')).not.toBeNull();
   });
 
   it("should size fluid CSS tiles squarely without inline px styles and fit 8x8 inside 288px", () => {

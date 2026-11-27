@@ -105,14 +105,17 @@
 }
 
 .tile-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font-weight: 700;
   line-height: 1;
 }
 
 .tile-badge-hit {
   position: absolute;
-  top: 3px;
-  right: 5px;
+  top: 4px;
+  right: 4px;
   font-size: var(--tile-badge-hit-size, 0.72rem);
 }
 

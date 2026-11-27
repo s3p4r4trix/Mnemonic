@@ -219,4 +219,41 @@ describe("StatsDialogComponent", () => {
     expect(component.selectedHeatmapCell()?.date).toBe("2099-01-15");
     expect(component.selectedHeatmapCell()?.isToday).toBeTrue();
   });
+
+  it("should render inline SVG icons on Reset Stats and Copy Today's Result while keeping tabs and metrics icon-free", async () => {
+    statsService.recordRun(
+      { score: 12, level: 2, maxSpan: 3, bestStreak: 1, inSequenceTiles: 6, outOfSequenceTiles: 0 },
+      "classic"
+    );
+    const today = dailyService.todayKey();
+    dailyService.recordRun({
+      date: today,
+      score: 20,
+      level: 3,
+      maxSpan: 4,
+      bestStreak: 2,
+      inSequenceTiles: 9,
+      outOfSequenceTiles: 0,
+      roundOutcomes: ["perfect", "perfect", "fail"],
+    });
+    fixture.detectChanges();
+
+    const host = fixture.nativeElement as HTMLElement;
+    expect(host.querySelectorAll(".stats-mode-tab svg").length).toBe(0);
+    expect(host.querySelectorAll(".metric-card svg").length).toBe(0);
+    expect(host.querySelector('#reset-stats-button app-icon[data-icon="trash"] svg')).not.toBeNull();
+
+    component.selectTab("daily");
+    fixture.detectChanges();
+    expect(host.querySelectorAll(".metric-card svg").length).toBe(0);
+    expect(host.querySelector('#stats-copy-daily-button app-icon[data-icon="copy"] svg')).not.toBeNull();
+
+    Object.defineProperty(navigator, "clipboard", {
+      value: { writeText: jasmine.createSpy("writeText").and.returnValue(Promise.resolve()) },
+      configurable: true,
+    });
+    await component.copyTodayResult();
+    fixture.detectChanges();
+    expect(host.querySelector('#stats-copy-daily-button app-icon[data-icon="check"] svg')).not.toBeNull();
+  });
 });

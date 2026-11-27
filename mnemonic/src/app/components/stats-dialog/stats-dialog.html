@@ -55,6 +55,7 @@
           type="button"
           id="stats-copy-daily-button"
           (click)="copyTodayResult()">
+          <app-icon matButtonIcon [name]="copyState() === 'copied' ? 'check' : 'copy'" aria-hidden="true" />
           {{ copyState() === 'copied' ? 'Copied!' : "Copy Today's Result" }}
         </button>
       </div>
@@ -217,6 +218,7 @@
       </div>
     } @else {
       <button matButton type="button" id="reset-stats-button" (click)="requestReset()">
+        <app-icon matButtonIcon name="trash" aria-hidden="true" />
         Reset Stats
       </button>
     }

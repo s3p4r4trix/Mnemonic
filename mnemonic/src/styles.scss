@@ -39,6 +39,28 @@ html {
   --mat-icon-button-state-layer-size: 44px;
 }
 
+.mat-mdc-button-base > app-icon[matButtonIcon] {
+  --icon-size: 18px;
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+  margin-inline-end: 8px;
+  margin-inline-start: -4px;
+}
+
+.mat-mdc-button-base .mdc-button__label {
+  white-space: nowrap;
+}
+
+.mat-mdc-icon-button app-icon {
+  position: relative;
+  z-index: 1;
+}
+
+.mat-mdc-icon-button app-icon svg {
+  display: block;
+}
+
 @media (min-width: 768px) {
   html {
     --page-max-width: 540px;

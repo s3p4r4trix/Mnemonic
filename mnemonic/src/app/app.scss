@@ -35,6 +35,12 @@ main {
   align-items: center;
   gap: 4px;
   color: var(--mat-sys-on-surface-variant);
+
+  button[mat-icon-button] {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
 }
 
 @media (orientation: landscape) and (max-height: 500px) {
