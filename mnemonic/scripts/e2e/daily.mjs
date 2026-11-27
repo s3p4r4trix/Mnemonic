@@ -1,7 +1,25 @@
 import assert from 'node:assert/strict';
 import { sleep, waitForMessage } from './cdp.mjs';
+import { verifyInlineIcons } from './icons.mjs';
 import { verifyModalAcrossViewports } from './responsive.mjs';
 import { contrastRatio, measureSettledLitTile } from './theme.mjs';
+
+async function clickCopyAndAssertCheckIcon(cdp, buttonSelector, errorContext) {
+  await cdp.eval(`document.querySelector(${JSON.stringify(buttonSelector)})?.click()`, { userGesture: true });
+  for (let i = 0; i < 20; i++) {
+    const state = await cdp.eval(`({
+      label: document.querySelector(${JSON.stringify(buttonSelector)})?.textContent?.trim() || '',
+      hasCheckIcon: Boolean(
+        document.querySelector(${JSON.stringify(buttonSelector + ' app-icon[data-icon="check"] svg')})
+      ),
+    })`);
+    if (state.label === 'Copied!' && state.hasCheckIcon) {
+      return;
+    }
+    await sleep(75);
+  }
+  assert.fail(`${errorContext}: copy button did not swap to "Copied!" with check icon`);
+}
 
 export async function verifyDailyChallengeAndReducedMotion(cdp, screenshotsDir) {
   // 8. Daily Challenge (in light mode): contrast checks, deterministic sequence, stats isolation, Game Over actions, unranked replay, and Stats heatmap
@@ -78,6 +96,21 @@ export async function verifyDailyChallengeAndReducedMotion(cdp, screenshotsDir) 
   assert.equal(dailyOverDialog.hasCopy, true);
   assert.ok(dailyOverDialog.buttons.includes('Replay Daily'));
   assert.ok(!dailyOverDialog.buttons.includes('Retry Level'));
+  await verifyInlineIcons(cdp, 'daily-gameover-dialog', {
+    scope: 'app-game-over-dialog',
+    minCount: 3,
+    requiredSelectors: [
+      '.daily-streak-pill app-icon[data-icon="flame"] svg',
+      '#copy-daily-result-button app-icon[data-icon="copy"] svg',
+    ],
+    iconFreeSelectors: ['.unranked-note'],
+  });
+  const dailyGameOverModalChecks = await verifyModalAcrossViewports(
+    cdp,
+    'app-game-over-dialog',
+    screenshotsDir,
+    'daily_gameover_dialog'
+  );
 
   await cdp.eval(
     `[...document.querySelectorAll('app-game-over-dialog button')].find(b => b.textContent.trim() === 'Close')?.click()`
@@ -89,11 +122,13 @@ export async function verifyDailyChallengeAndReducedMotion(cdp, screenshotsDir) 
     classicGames: JSON.parse(localStorage.getItem('mnemonic:stats:v2') || '{}')?.byMode?.classic?.gamesPlayed ?? 0,
     mainButtons: [...document.querySelectorAll('app-game button')].map(b => b.textContent.trim()),
     dailyBtnText: document.querySelector('#daily-challenge-button')?.textContent?.trim() || '',
+    hasDoneIcon: Boolean(document.querySelector('#daily-challenge-button app-icon[data-icon="calendar-check"] svg')),
   })`);
   assert.notEqual(afterDailyClose.dailyRaw, null, 'Daily run should persist in localStorage');
   assert.equal(afterDailyClose.classicGames, 0, 'Daily run must not count toward Classic stats');
   assert.ok(!afterDailyClose.mainButtons.includes('Retry Level'));
   assert.match(afterDailyClose.dailyBtnText, /Daily Done \(6\)/);
+  assert.equal(afterDailyClose.hasDoneIcon, true, 'Daily Done button must swap to calendar-check icon');
 
   // Unranked replay: must reproduce exact same Level 1 sequence and show Unranked Replay badge
   await cdp.eval(`
@@ -105,6 +140,10 @@ export async function verifyDailyChallengeAndReducedMotion(cdp, screenshotsDir) 
   assert.deepEqual(replaySeq1, dailySeq1, 'Daily Challenge replay must reproduce identical sequence');
   const unrankedBadge = await cdp.eval(`document.querySelector('.unranked-badge')?.textContent?.trim() || ''`);
   assert.equal(unrankedBadge, 'Unranked Replay');
+  await verifyInlineIcons(cdp, 'daily-unranked-replay', {
+    minCount: 3,
+    iconFreeSelectors: ['.daily-badge', '.unranked-badge', '.app-title', '.stats', 'button.tile'],
+  });
 
   // Fail Level 1 during unranked replay; score must remain locked at 6
   const replayWrong1 = await cdp.eval(`
@@ -125,9 +164,22 @@ export async function verifyDailyChallengeAndReducedMotion(cdp, screenshotsDir) 
   assert.equal(replayDialogBeforeCopy.title, 'Daily Replay Complete');
   assert.equal(replayDialogBeforeCopy.copyLabel, 'Copy Official Result');
   assert.match(replayDialogBeforeCopy.note, /official result: 6 pts/i);
+  await verifyInlineIcons(cdp, 'daily-replay-gameover-dialog', {
+    scope: 'app-game-over-dialog',
+    minCount: 3,
+    iconFreeSelectors: ['.unranked-note'],
+  });
 
-  await cdp.eval(`document.querySelector('app-game-over-dialog #copy-daily-result-button')?.click()`);
-  await sleep(150);
+  const pageOrigin = await cdp.eval(`location.origin`);
+  await cdp.send('Browser.grantPermissions', {
+    origin: pageOrigin,
+    permissions: ['clipboardReadWrite', 'clipboardSanitizedWrite'],
+  });
+  await clickCopyAndAssertCheckIcon(
+    cdp,
+    'app-game-over-dialog #copy-daily-result-button',
+    'Daily Replay Game Over dialog'
+  );
 
   await cdp.eval(
     `[...document.querySelectorAll('app-game-over-dialog button')].find(b => b.textContent.trim() === 'Replay Daily')?.click()`
@@ -197,6 +249,12 @@ export async function verifyDailyChallengeAndReducedMotion(cdp, screenshotsDir) 
     'stats_dialog'
   );
 
+  await clickCopyAndAssertCheckIcon(
+    cdp,
+    'app-stats-dialog #stats-copy-daily-button',
+    'Stats dialog Daily tab'
+  );
+
   // Verify prefers-reduced-motion disables transitions and animations across controls and tiles
   await cdp.send('Emulation.setEmulatedMedia', {
     features: [{ name: 'prefers-reduced-motion', value: 'reduce' }],
@@ -233,6 +291,7 @@ export async function verifyDailyChallengeAndReducedMotion(cdp, screenshotsDir) 
     lightLitCr,
     lightSelectedCr,
     dailyHeatmapCells: dailyStatsView.heatmapCount,
+    dailyGameOverModalChecks,
     dailyStatsModalChecks,
     reducedMotionDurations: reducedMotionProbe.durations,
   };

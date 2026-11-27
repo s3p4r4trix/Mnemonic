@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { setViewport, sleep } from './cdp.mjs';
+import { assertButtonsNoWrapOrOverflow, verifyInlineIcons } from './icons.mjs';
 
 export const RESPONSIVE_VIEWPORTS = [
   { key: 'mobile320', width: 320, height: 568, mobile: true },
@@ -119,6 +120,19 @@ export async function verifyModalAcrossViewports(cdp, tagName, screenshotsDir, s
     await assertMinTouchTargets(cdp, `${tagName}@${vp.key}`, [
       `${tagName} button:not(.heatmap-cell)`,
     ]);
+    await verifyInlineIcons(cdp, `${tagName}@${vp.key}`, {
+      scope: tagName,
+      minCount: tagName === 'app-game-over-dialog' ? 2 : 1,
+      iconFreeSelectors:
+        tagName === 'app-stats-dialog'
+          ? ['.stats-mode-tab', '.metric-card']
+          : ['.unranked-note'],
+    });
+    await assertButtonsNoWrapOrOverflow(
+      cdp,
+      `${tagName}@${vp.key}`,
+      `${tagName} button:not(.heatmap-cell)`
+    );
 
     if (tagName === 'app-stats-dialog' && vp.key === 'mobile320') {
       const tabsProbe = await cdp.eval(`(() => {
@@ -195,6 +209,19 @@ export async function verifyResponsiveGameOverReview(cdp, screenshotsDir) {
       'button.progressive-toggle',
       '.game-actions button',
     ]);
+    await verifyInlineIcons(cdp, `over@${vp.key}`, {
+      minCount: 8,
+      requiredSelectors: [
+        '.tile-badge-hit app-icon[data-icon="check"] svg',
+        '.tile-badge-miss app-icon[data-icon="x"] svg',
+      ],
+      iconFreeSelectors: ['.app-title', '.stats', '.mode-pill'],
+    });
+    await assertButtonsNoWrapOrOverflow(
+      cdp,
+      `over@${vp.key}`,
+      '.progressive-toggle, .game-actions button'
+    );
     await cdp.screenshot(screenshotsDir, `over_${vp.key}.png`);
     results[vp.key] = { boardTop: Math.round(m.board.top), setupTop: Math.round(m.setup.top) };
   }
@@ -203,13 +230,20 @@ export async function verifyResponsiveGameOverReview(cdp, screenshotsDir) {
   return results;
 }
 
-export async function verifyResponsiveIdle(cdp, screenshotsDir) {
+export async function verifyResponsiveIdle(cdp, screenshotsDir, theme = 'light') {
   const results = {};
-  const specs = [
-    { key: 'mobile320', width: 320, height: 568, mobile: true, shot: '7_idle_320.png' },
-    { key: 'landscape667', width: 667, height: 375, mobile: true, shot: '8_idle_landscape_667.png' },
-    { key: 'desktop1440', width: 1440, height: 900, mobile: false, shot: '9_idle_desktop_1440.png' },
-  ];
+  const specs =
+    theme === 'dark'
+      ? [
+          { key: 'mobile320', width: 320, height: 568, mobile: true, shot: 'idle_dark_mobile320.png' },
+          { key: 'landscape667', width: 667, height: 375, mobile: true, shot: 'idle_dark_landscape667.png' },
+          { key: 'desktop1440', width: 1440, height: 900, mobile: false, shot: 'idle_dark_desktop1440.png' },
+        ]
+      : [
+          { key: 'mobile320', width: 320, height: 568, mobile: true, shot: '7_idle_320.png' },
+          { key: 'landscape667', width: 667, height: 375, mobile: true, shot: '8_idle_landscape_667.png' },
+          { key: 'desktop1440', width: 1440, height: 900, mobile: false, shot: '9_idle_desktop_1440.png' },
+        ];
 
   for (const vp of specs) {
     await setViewport(cdp, vp.width, vp.height, vp.mobile);
@@ -264,6 +298,15 @@ export async function verifyResponsiveIdle(cdp, screenshotsDir) {
       'button.progressive-toggle',
       '.game-actions button',
     ]);
+    await verifyInlineIcons(cdp, `idle-${theme}@${vp.key}`, {
+      minCount: 6,
+      iconFreeSelectors: ['.app-title', '.stats', '.mode-pill', '.daily-badge', '.unranked-badge'],
+    });
+    await assertButtonsNoWrapOrOverflow(
+      cdp,
+      `idle-${theme}@${vp.key}`,
+      '.progressive-toggle, .game-actions button'
+    );
 
     await cdp.screenshot(screenshotsDir, vp.shot);
     results[vp.key] = {
@@ -321,6 +364,11 @@ export async function verifyResponsiveGameplay(cdp, screenshotsDir) {
     } else if (vp.key === 'desktop1440') {
       assert.ok(m.tileW >= 90, `1440x900 3x3 tile too small: ${m.tileW}px`);
     }
+
+    await verifyInlineIcons(cdp, `gameplay@${vp.key}`, {
+      minCount: 3,
+      iconFreeSelectors: ['.app-title', '.stats', 'button.tile'],
+    });
 
     await cdp.screenshot(screenshotsDir, vp.shot);
     results[vp.key] = {

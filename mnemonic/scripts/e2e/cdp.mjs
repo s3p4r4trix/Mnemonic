@@ -111,6 +111,9 @@ export class CdpClient {
     this.nextId = 0;
     this.pending = new Map();
     this.consoleErrors = [];
+    this.networkRequests = [];
+    this.failedRequests = [];
+    this.requestsById = new Map();
     ws.addEventListener('message', (event) => {
       const msg = JSON.parse(event.data);
       if (msg.id && this.pending.has(msg.id)) {
@@ -120,6 +123,22 @@ export class CdpClient {
         else resolve(msg.result);
       } else if (msg.method === 'Runtime.exceptionThrown') {
         this.consoleErrors.push(msg.params.exceptionDetails.text);
+      } else if (msg.method === 'Network.requestWillBeSent') {
+        const url = msg.params.request?.url || '';
+        this.networkRequests.push(url);
+        this.requestsById.set(msg.params.requestId, url);
+      } else if (msg.method === 'Network.responseReceived') {
+        const status = msg.params.response?.status ?? 0;
+        const url = msg.params.response?.url || this.requestsById.get(msg.params.requestId) || '';
+        if (status >= 400) {
+          this.failedRequests.push({ url, status });
+        }
+      } else if (msg.method === 'Network.loadingFailed') {
+        const url = this.requestsById.get(msg.params.requestId) || '';
+        this.failedRequests.push({
+          url,
+          errorText: msg.params.errorText || 'loadingFailed',
+        });
       }
     });
   }
@@ -132,11 +151,12 @@ export class CdpClient {
     });
   }
 
-  async eval(expression) {
+  async eval(expression, { userGesture = false } = {}) {
     const res = await this.send('Runtime.evaluate', {
       expression,
       returnByValue: true,
       awaitPromise: true,
+      userGesture,
     });
     if (res.exceptionDetails) {
       throw new Error(res.exceptionDetails.text || 'Runtime evaluation error');
