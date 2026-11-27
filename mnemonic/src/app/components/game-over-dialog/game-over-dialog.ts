@@ -5,10 +5,11 @@ import {MatButtonModule} from '@angular/material/button';
 import {DailyChallengeService} from '../../services/daily-challenge.service';
 import {GameService} from '../../services/game.service';
 import {computeDailyStreaks, formatRoundOutcomes} from '../../utils/daily-rng';
+import {IconComponent} from '../icon/icon';
 
 @Component({
   selector: 'app-game-over-dialog',
-  imports: [MatDialogModule, MatButtonModule],
+  imports: [IconComponent, MatDialogModule, MatButtonModule],
   templateUrl: './game-over-dialog.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrls: ['./game-over-dialog.scss']

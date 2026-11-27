@@ -32,7 +32,23 @@ Single-source visual and layout contract for the **Ink & Iris** theme.
 - **Contrast (PR 1, enforced in `e2e-check.mjs`).** Body and control text `>= 4.5:1`; tile state deltas (lit vs idle, selected vs idle) and toggle borders `>= 3.0:1`.
 - **Responsive shell (PR 2, enforced in `e2e-check.mjs` and `grid.spec.ts`).** Global `border-box`, `100dvh`, `viewport-fit=cover` with safe-area insets, fluid CSS `aspect-ratio: 1` grid (`8x8` fits inside `320px` phones), aligned columns, and two-column short-landscape playfield verified at `320x568`, `667x375`, and `1440x900`.
 - **Dialogs and touch (PR 3, enforced in `e2e-check.mjs`, `stats-dialog.spec.ts`, and `game.spec.ts`).** Shared `.app-dialog-panel` flex container (`maxHeight: 92dvh`) with pinned headers/actions and scrollable `.mat-mdc-dialog-content` (zero clipping at `320x568`, `667x375`, and `1440x900`), horizontally scrollable untruncated Stats tabs at `320px`, tap-inspectable 12-week heatmap button cells with a pre-selected inline `.heatmap-detail` readout bar, `44px` minimum touch targets on UI buttons/controls (excluding dense grid tiles and heatmap cells), extended `prefers-reduced-motion: reduce` across controls, and `.board-stage` prioritized above `.setup-panel` on `over`.
+- **Icons (Phase 3.5, enforced in `e2e-check.mjs` and `icon.spec.ts`).** Zero external icon font links or requests. Inline `24x24` `currentColor` SVGs render with non-zero bounding boxes and `aria-hidden="true"`. Excluded surfaces stay icon-free, and icon-bearing buttons do not wrap or overflow across `320x568`, `667x375`, and `1440x900`.
 - **Motion and reduced motion (PR 4, enforce in `e2e-check.mjs`).** Pure-CSS transitions driven by `--motion-*` tokens; `Emulation.setEmulatedMedia` with `prefers-reduced-motion: reduce` resolves duration tokens to `0ms` and disables keyframe animations.
+
+## Icon system
+
+All UI icons use a zero-dependency inline SVG registry in [icon-registry.ts](mnemonic/src/app/components/icon/icon-registry.ts) rendered by [IconComponent](mnemonic/src/app/components/icon/icon.ts). [index.html](mnemonic/src/index.html) loads Roboto weights only and excludes external icon font stylesheets.
+
+### Stroke and sizing contract
+
+- **Canvas and stroke.** Icons share a `24x24` `viewBox`, `fill="none"`, `stroke="currentColor"`, `stroke-linecap="round"`, and `stroke-linejoin="round"`. Default `strokeWidth` is `2`. Compact Game Over tile review markers use `2.5`.
+- **Accessibility.** Every `<app-icon>` sets `aria-hidden="true"` on both host and `<svg>` elements and omits `<title>` elements so button text labels stay unchanged. Icon-only header controls rely on `aria-label` on the parent `<button>`.
+- **Size scale.** `<app-icon>` defaults to `--icon-size: 1em`. Header `mat-icon-button` controls inherit `24px`. Action `matButton` controls use `18px`. `.progressive-toggle` uses `16px`. Status pills (`.streak-badge`, `.daily-streak-pill`, `.new-best-pill`) use `14px`. Game Over tile markers scale from `--tile-badge-hit-size` and `--tile-badge-miss-size` in [grid.ts](mnemonic/src/app/components/grid/grid.ts).
+
+### Scoped icon placement
+
+- **Icon surfaces.** Header buttons (`bar-chart`, `volume-on`, `volume-off`, `moon`, `sun`), primary and secondary action buttons (`play`, `calendar`, `calendar-check`, `retry`, `copy` swapping to `check` on `Copied!`, `trash`), `.progressive-toggle` (`bolt`), status badges and pills (`flame`, `trophy`), and Game Over tile markers (`check`, `x`).
+- **Icon-free surfaces.** Mode pills, speed pills, Stats tabs, HUD counters, Stats metric cards, `.app-title`, `.daily-badge`, `.unranked-badge`, text-only utility actions (`Close`, `Cancel`, `Confirm Reset`), and active gameplay tiles.
 
 ## Motion system (PR 4 specification)
 

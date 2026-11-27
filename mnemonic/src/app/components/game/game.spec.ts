@@ -211,4 +211,43 @@ describe("GameComponent", () => {
       )
     ).toBeTrue();
   });
+
+  it("should render inline SVG icons on scoped controls and keep mode/speed pills and HUD icon-free", () => {
+    const host = fixture.nativeElement as HTMLElement;
+
+    expect(host.querySelector(".stats svg")).toBeNull();
+    expect(host.querySelectorAll(".mode-pill svg").length).toBe(0);
+
+    const startBtn = Array.from(host.querySelectorAll(".game-actions button")).find(
+      b => b.textContent?.trim() === "Start Game"
+    );
+    expect(startBtn?.querySelector('app-icon[data-icon="play"] svg')).not.toBeNull();
+    expect(host.querySelector('#daily-challenge-button app-icon[data-icon="calendar"] svg')).not.toBeNull();
+    expect(host.querySelector('.progressive-toggle app-icon[data-icon="bolt"] svg')).not.toBeNull();
+
+    gameService.startGame();
+    const seq = gameService.getSequence();
+    gameService.gameState.set("input");
+    seq.forEach(id => gameService.handlePlayerTileClick(id));
+    fixture.detectChanges();
+    expect(host.querySelector('.streak-badge app-icon[data-icon="flame"] svg')).not.toBeNull();
+
+    gameService.gameState.set("over");
+    fixture.detectChanges();
+    const retryBtn = Array.from(host.querySelectorAll(".game-actions button")).find(
+      b => b.textContent?.trim() === "Retry Level"
+    );
+    expect(retryBtn?.querySelector('app-icon[data-icon="retry"] svg')).not.toBeNull();
+
+    const dailyBtn = host.querySelector("#daily-challenge-button") as HTMLButtonElement;
+    dailyBtn.click();
+    fixture.detectChanges();
+    const dailySeq = [...gameService.getSequence()];
+    const wrong = gameService.tiles().find(t => !dailySeq.includes(t.id))!;
+    gameService.gameState.set("input");
+    dailySeq.slice(0, dailySeq.length - 1).forEach(id => gameService.handlePlayerTileClick(id));
+    gameService.handlePlayerTileClick(wrong.id);
+    fixture.detectChanges();
+    expect(host.querySelector('#daily-challenge-button app-icon[data-icon="calendar-check"] svg')).not.toBeNull();
+  });
 });

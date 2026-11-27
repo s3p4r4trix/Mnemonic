@@ -8,7 +8,10 @@
 <div mat-dialog-content class="game-over">
   @if (gameService.isDailyChallenge()) {
     @if (officialDailyStreak() > 0) {
-      <div class="daily-streak-pill">Daily Streak: {{ officialDailyStreak() }}d</div>
+      <div class="daily-streak-pill">
+        <app-icon name="flame" aria-hidden="true" />
+        Daily Streak: {{ officialDailyStreak() }}d
+      </div>
     }
     @if (gameService.isUnrankedRetry()) {
       @if (officialDailyResult(); as official) {
@@ -36,7 +39,10 @@
     </div>
   } @else {
     @if (gameService.lastRunWasNewBest()) {
-      <div class="new-best-pill">New Personal Best!</div>
+      <div class="new-best-pill">
+        <app-icon name="trophy" aria-hidden="true" />
+        New Personal Best!
+      </div>
     } @else if (gameService.isUnrankedRetry()) {
       <div class="unranked-note">Unranked retry (not saved to stats)</div>
     }
@@ -61,11 +67,21 @@
       type="button"
       [disabled]="!officialDailyResult()"
       (click)="onCopyDailyResult()">
+      <app-icon matButtonIcon [name]="copyState() === 'copied' ? 'check' : 'copy'" aria-hidden="true" />
       {{ copyState() === 'copied' ? 'Copied!' : (gameService.isUnrankedRetry() ? 'Copy Official Result' : 'Copy Result') }}
     </button>
-    <button matButton="filled" type="button" (click)="onReplayDaily()">Replay Daily</button>
+    <button matButton="filled" type="button" (click)="onReplayDaily()">
+      <app-icon matButtonIcon name="retry" aria-hidden="true" />
+      Replay Daily
+    </button>
   } @else {
-    <button matButton="tonal" (click)="onRetryLevel()" class="retry-button">Retry Level</button>
-    <button matButton="filled" (click)="onPlayAgain()">Play Again</button>
+    <button matButton="tonal" (click)="onRetryLevel()" class="retry-button">
+      <app-icon matButtonIcon name="retry" aria-hidden="true" />
+      Retry Level
+    </button>
+    <button matButton="filled" (click)="onPlayAgain()">
+      <app-icon matButtonIcon name="play" aria-hidden="true" />
+      Play Again
+    </button>
   }
 </div>

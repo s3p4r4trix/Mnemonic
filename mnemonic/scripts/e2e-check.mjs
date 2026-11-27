@@ -25,6 +25,7 @@ import {
   waitForMessage,
 } from './e2e/cdp.mjs';
 import { verifyDailyChallengeAndReducedMotion } from './e2e/daily.mjs';
+import { assertButtonsNoWrapOrOverflow, verifyInlineIcons } from './e2e/icons.mjs';
 import {
   verifyModalAcrossViewports,
   verifyResponsiveGameOverReview,
@@ -79,6 +80,7 @@ async function main() {
     const cdp = new CdpClient(ws);
     await cdp.send('Page.enable');
     await cdp.send('Runtime.enable');
+    await cdp.send('Network.enable');
     await cdp.send('Emulation.setDeviceMetricsOverride', {
       width: 430,
       height: 820,
@@ -100,7 +102,7 @@ async function main() {
     assert.match(hudIdle, /LEVEL 1.*SCORE 0.*TILES 0 \/ 3/i);
     const lightIdleContrast = await verifyIdleThemeContrast(cdp, 'light');
     await cdp.screenshot(screenshotsDir, '1_idle_light.png');
-    const responsiveIdleChecks = await verifyResponsiveIdle(cdp, screenshotsDir);
+    const responsiveIdleChecks = await verifyResponsiveIdle(cdp, screenshotsDir, 'light');
 
     // 2. Toggle theme to dark mode, verify contrast after 0.3s transition, & verify mute toggle persistence
     const initialDark = await cdp.eval(`document.documentElement.classList.contains('dark')`);
@@ -108,7 +110,12 @@ async function main() {
     await sleep(400);
     const toggledDark = await cdp.eval(`document.documentElement.classList.contains('dark')`);
     assert.notEqual(toggledDark, initialDark, 'Theme toggle should flip dark mode class on <html>');
+    const darkThemeIcon = await cdp.eval(
+      `document.querySelector('#theme-toggle-button app-icon')?.getAttribute('data-icon')`
+    );
+    assert.equal(darkThemeIcon, 'sun', 'Dark mode header toggle should render sun icon');
     const darkIdleContrast = await verifyIdleThemeContrast(cdp, 'dark');
+    const responsiveDarkIdleChecks = await verifyResponsiveIdle(cdp, screenshotsDir, 'dark');
 
     const initialMuted = await cdp.eval(`document.querySelector('#mute-toggle-button')?.getAttribute('aria-pressed')`);
     assert.equal(initialMuted, 'false', 'Mute toggle should default to unmuted');
@@ -117,8 +124,9 @@ async function main() {
     const mutedAfterClick = await cdp.eval(`({
       pressed: document.querySelector('#mute-toggle-button')?.getAttribute('aria-pressed'),
       stored: localStorage.getItem('mnemonic:muted'),
+      icon: document.querySelector('#mute-toggle-button app-icon')?.getAttribute('data-icon'),
     })`);
-    assert.deepEqual(mutedAfterClick, { pressed: 'true', stored: 'true' });
+    assert.deepEqual(mutedAfterClick, { pressed: 'true', stored: 'true', icon: 'volume-off' });
     // Unmute again so audio code paths execute during gameplay
     await cdp.eval(`document.querySelector('#mute-toggle-button')?.click()`);
     await sleep(100);
@@ -187,16 +195,22 @@ async function main() {
     const responsivePlayChecks = await verifyResponsiveGameplay(cdp, screenshotsDir);
 
     await cdp.eval(`document.querySelector('button[data-tile-id="${seq1[1]}"]')?.click()`);
+    // Clear sequence buffer before finishing Level 1 so Level 2's first flash is never missed if checks take >800ms
+    await cdp.eval(`window.__recordedSeq = [];`);
     await cdp.eval(`document.querySelector('button[data-tile-id="${seq1[2]}"]')?.click()`);
     await sleep(150);
     const clearedBanner = await cdp.eval(`document.querySelector('.round-cleared-banner')?.textContent?.trim()`);
     const streakBadge = await cdp.eval(`document.querySelector('.streak-badge')?.textContent?.replace(/\\s+/g, ' ').trim()`);
     assert.equal(clearedBanner, 'Round Cleared!');
     assert.equal(streakBadge, 'Streak 1');
+    await verifyInlineIcons(cdp, 'round-cleared', {
+      minCount: 4,
+      requiredSelectors: ['.streak-badge app-icon[data-icon="flame"] svg'],
+      iconFreeSelectors: ['.app-title', '.stats', 'button.tile'],
+    });
     await cdp.screenshot(screenshotsDir, '3_round_cleared.png');
 
     // 6. Wait for Level 2 input phase and trigger Game Over to verify board review overlays + stats persistence
-    await cdp.eval(`window.__recordedSeq = [];`);
     await waitForMessage(cdp, 'Your turn');
     const seq2 = await cdp.eval(`window.__recordedSeq`);
     assert.equal(seq2.length, 4, `Expected 4 flashed tiles on level 2, got ${JSON.stringify(seq2)}`);
@@ -222,6 +236,16 @@ async function main() {
     })`);
     assert.equal(gameOverState.visible, true, 'GameOverDialogComponent should open on failure');
     assert.equal(gameOverState.newBestText, 'New Personal Best!');
+    await verifyInlineIcons(cdp, 'regular-gameover-dialog', {
+      scope: 'app-game-over-dialog',
+      minCount: 3,
+      requiredSelectors: [
+        '.new-best-pill app-icon[data-icon="trophy"] svg',
+        '.retry-button app-icon[data-icon="retry"] svg',
+        'app-icon[data-icon="play"] svg',
+      ],
+      iconFreeSelectors: ['.unranked-note'],
+    });
     const gameOverDialogChecks = await verifyModalAcrossViewports(
       cdp,
       'app-game-over-dialog',
@@ -266,12 +290,27 @@ async function main() {
     assert.deepEqual(review, { hits: 2, missed: 2, wrong: 2, orders: ['1', '2', '3', '4'] });
 
     // 7. Reload page to verify localStorage persistence, then open Stats dialog and test two-step Reset Stats
+    const reloadRequestStart = cdp.networkRequests.length;
+    await cdp.eval(`window.__beforeReload = true`);
     await cdp.send('Page.reload', { ignoreCache: true });
     for (let i = 0; i < 40; i++) {
-      const ready = await cdp.eval(`Boolean(document.querySelector('#stats-button'))`);
-      if (ready) break;
+      try {
+        const ready = await cdp.eval(`!window.__beforeReload && Boolean(document.querySelector('#stats-button'))`);
+        if (ready) break;
+      } catch {
+        // Ignore transient execution-context destruction during reload navigation
+      }
       await sleep(150);
     }
+    const reloadIconCheck = await verifyInlineIcons(cdp, 'after-reload', {
+      minCount: 6,
+      iconFreeSelectors: ['.app-title', '.stats', '.mode-pill'],
+    });
+    assert.equal(
+      cdp.networkRequests.slice(reloadRequestStart).some((u) => /Material\+Icons|fonts\.googleapis\.com\/icon/i.test(u)),
+      false,
+      'Reload must not request external Material Icons font'
+    );
     const hudAfterReload = await cdp.eval(`document.querySelector('.stats')?.innerText?.replace(/\\s+/g, ' ').trim()`);
     assert.match(hudAfterReload, /BEST 6/i, 'Personal best should persist across page reload');
 
@@ -289,6 +328,17 @@ async function main() {
     assert.match(statsDialogText, /BEST SCORE 6/i);
     assert.match(statsDialogText, /MAX SPAN 3/i);
     assert.match(statsDialogText, /ORDER ACCURACY 100%/i);
+    await verifyInlineIcons(cdp, 'stats-dialog-classic', {
+      scope: 'app-stats-dialog',
+      minCount: 1,
+      requiredSelectors: ['#reset-stats-button app-icon[data-icon="trash"] svg'],
+      iconFreeSelectors: ['.stats-mode-tab', '.metric-card'],
+    });
+    await assertButtonsNoWrapOrOverflow(
+      cdp,
+      'stats-dialog-classic',
+      'app-stats-dialog button:not(.heatmap-cell)'
+    );
     await cdp.screenshot(screenshotsDir, '5_stats_dialog.png');
 
     await cdp.eval(`document.querySelector('#reset-stats-button')?.click()`);
@@ -342,11 +392,14 @@ async function main() {
             },
             responsiveChecks: {
               idle: responsiveIdleChecks,
+              darkIdle: responsiveDarkIdleChecks,
               gameplay: responsivePlayChecks,
               gameOverReview: gameOverReviewChecks,
               gameOverDialog: gameOverDialogChecks,
+              dailyGameOverDialog: daily.dailyGameOverModalChecks,
               dailyStatsDialog: daily.dailyStatsModalChecks,
             },
+            inlineIconCountAfterReload: reloadIconCheck,
             review,
             consoleErrors: 0,
           },

@@ -81,4 +81,32 @@ describe('App', () => {
     expect(localStorage.getItem('mnemonic:muted')).toBe('true');
     localStorage.removeItem('mnemonic:muted');
   });
+
+  it('should render inline SVG icons in header controls, swap icons on toggle, and keep title icon-free', () => {
+    localStorage.setItem('theme', 'light');
+    localStorage.removeItem('mnemonic:muted');
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+    const host = fixture.nativeElement as HTMLElement;
+
+    expect(host.querySelector('.app-title svg')).toBeNull();
+
+    const statsIcon = host.querySelector('#stats-button app-icon') as HTMLElement | null;
+    const muteIcon = host.querySelector('#mute-toggle-button app-icon') as HTMLElement | null;
+    const themeIcon = host.querySelector('#theme-toggle-button app-icon') as HTMLElement | null;
+
+    expect(statsIcon?.getAttribute('data-icon')).toBe('bar-chart');
+    expect(statsIcon?.getAttribute('aria-hidden')).toBe('true');
+    expect(statsIcon?.querySelector('svg')).not.toBeNull();
+    expect(muteIcon?.getAttribute('data-icon')).toBe('volume-on');
+    expect(themeIcon?.getAttribute('data-icon')).toBe('moon');
+
+    (host.querySelector('#mute-toggle-button') as HTMLButtonElement).click();
+    (host.querySelector('#theme-toggle-button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(host.querySelector('#mute-toggle-button app-icon')?.getAttribute('data-icon')).toBe('volume-off');
+    expect(host.querySelector('#theme-toggle-button app-icon')?.getAttribute('data-icon')).toBe('sun');
+    localStorage.removeItem('mnemonic:muted');
+  });
 });

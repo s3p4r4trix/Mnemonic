@@ -30,6 +30,7 @@
         }
         @if (gameService.streak() > 0) {
           <span class="streak-badge" [class.has-multiplier]="gameService.currentMultiplier() > 1">
+            <app-icon name="flame" aria-hidden="true" />
             Streak {{ gameService.streak() }}
             @if (gameService.currentMultiplier() > 1) {
               <span>&middot; {{ gameService.currentMultiplier() }}x</span>
@@ -91,12 +92,14 @@
           [attr.aria-checked]="gameService.progressiveSpeed()"
           [class.active]="gameService.progressiveSpeed()"
           (click)="toggleProgressiveSpeed()">
+          <app-icon name="bolt" aria-hidden="true" />
           Speed up each level
         </button>
       </div>
 
       <div class="game-actions">
         <button matButton="filled" (click)="startGame()">
+          <app-icon matButtonIcon name="play" aria-hidden="true" />
           Start Game
         </button>
         <button
@@ -104,6 +107,10 @@
           id="daily-challenge-button"
           type="button"
           (click)="startDailyChallenge()">
+          <app-icon
+            matButtonIcon
+            [name]="dailyService.hasCompletedToday() ? 'calendar-check' : 'calendar'"
+            aria-hidden="true" />
           @if (dailyService.hasCompletedToday()) {
             Daily Done ({{ dailyService.todayResult()?.score }})
           } @else if (dailyService.currentStreak() > 0) {
@@ -114,6 +121,7 @@
         </button>
         @if (gameService.gameState() === 'over' && !gameService.isDailyChallenge()) {
           <button matButton="tonal" (click)="retryLevel()">
+            <app-icon matButtonIcon name="retry" aria-hidden="true" />
             Retry Level
           </button>
         }

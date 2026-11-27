@@ -9,12 +9,13 @@ import { DailyChallengeService } from "../../services/daily-challenge.service";
 import { GameService } from "../../services/game.service";
 import { StatsService } from "../../services/stats.service";
 import { formatRoundOutcomes } from "../../utils/daily-rng";
+import { IconComponent } from "../icon/icon";
 
 export type StatsTab = GameMode | "daily";
 
 @Component({
   selector: "app-stats-dialog",
-  imports: [DatePipe, MatDialogModule, MatButtonModule],
+  imports: [DatePipe, IconComponent, MatDialogModule, MatButtonModule],
   templateUrl: "./stats-dialog.html",
   styleUrls: ["./stats-dialog.scss"],
   changeDetection: ChangeDetectionStrategy.OnPush,

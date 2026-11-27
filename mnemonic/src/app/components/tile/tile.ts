@@ -1,10 +1,11 @@
 import {ChangeDetectionStrategy, Component, computed, inject, input, output} from "@angular/core";
 import {GameService} from "../../services/game.service";
 import {Tile} from '../../models/tile.model';
+import {IconComponent} from "../icon/icon";
 
 @Component({
   selector: "app-tile",
-  imports: [],
+  imports: [IconComponent],
   template: `
     <button
       type="button"
@@ -24,11 +25,15 @@ import {Tile} from '../../models/tile.model';
       @if (gameService.gameState() === 'over') {
         @if (tile().isCorrectAndClicked) {
           <span class="tile-order" aria-hidden="true">{{ tile().sequenceOrder }}</span>
-          <span class="tile-badge tile-badge-hit" aria-hidden="true">✓</span>
+          <span class="tile-badge tile-badge-hit" aria-hidden="true">
+            <app-icon name="check" [strokeWidth]="2.5" aria-hidden="true" />
+          </span>
         } @else if (tile().isCorrectAndNotClicked) {
           <span class="tile-order tile-order-missed" aria-hidden="true">{{ tile().sequenceOrder }}</span>
         } @else if (tile().isIncorrectAndClicked) {
-          <span class="tile-badge tile-badge-miss" aria-hidden="true">×</span>
+          <span class="tile-badge tile-badge-miss" aria-hidden="true">
+            <app-icon name="x" [strokeWidth]="2.5" aria-hidden="true" />
+          </span>
         }
       }
     </button>
