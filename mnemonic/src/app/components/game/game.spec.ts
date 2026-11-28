@@ -250,4 +250,24 @@ describe("GameComponent", () => {
     fixture.detectChanges();
     expect(host.querySelector('#daily-challenge-button app-icon[data-icon="calendar-check"] svg')).not.toBeNull();
   });
+
+  it("should update --active-index and --cols on segmented selectors when mode or speed changes", () => {
+    const host = fixture.nativeElement as HTMLElement;
+    const modeSelector = host.querySelector(".mode-selector") as HTMLElement;
+    const speedSelector = host.querySelector(".speed-selector") as HTMLElement;
+
+    expect(modeSelector.style.getPropertyValue("--cols")).toBe("4");
+    expect(modeSelector.style.getPropertyValue("--active-index")).toBe("0");
+    expect(speedSelector.style.getPropertyValue("--cols")).toBe("3");
+    expect(speedSelector.style.getPropertyValue("--active-index")).toBe("1");
+
+    const modePills = host.querySelectorAll<HTMLButtonElement>(".mode-selector .mode-pill");
+    const speedPills = host.querySelectorAll<HTMLButtonElement>(".speed-selector .mode-pill");
+    modePills[2].click();
+    speedPills[2].click();
+    fixture.detectChanges();
+
+    expect(modeSelector.style.getPropertyValue("--active-index")).toBe("2");
+    expect(speedSelector.style.getPropertyValue("--active-index")).toBe("2");
+  });
 });

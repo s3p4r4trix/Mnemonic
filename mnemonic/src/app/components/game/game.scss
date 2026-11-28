@@ -76,12 +76,20 @@
   color: var(--mat-sys-on-surface);
 }
 
+.stat-tick {
+  animation: stat-tick var(--motion-dur-quick) var(--motion-ease-out);
+}
+
 .message {
   min-height: 2rem;
   font-size: 1.1rem;
   font-weight: 600;
   color: var(--mat-sys-primary);
   text-align: center;
+
+  > span:not(.round-cleared-banner) {
+    animation: prompt-swap-in var(--motion-dur-quick) var(--motion-ease-out);
+  }
 
   &.is-empty {
     min-height: 0;
@@ -93,6 +101,7 @@
   border-radius: 999px;
   background: var(--game-success-bg);
   color: var(--game-success-text);
+  animation: badge-pop-in var(--motion-dur-emphasis) var(--motion-ease-bounce);
 }
 
 .round-bonus-detail {
@@ -126,6 +135,7 @@
   background: var(--mat-sys-primary-container);
   color: var(--mat-sys-on-primary-container);
   font-size: 0.82rem;
+  animation: badge-pop-in var(--motion-dur-emphasis) var(--motion-ease-bounce);
 
   app-icon {
     --icon-size: 14px;
@@ -146,6 +156,7 @@
 
 .mode-selector,
 .speed-selector {
+  position: relative;
   display: grid;
   width: 100%;
   grid-template-columns: repeat(var(--cols, 4), minmax(0, 1fr));
@@ -154,6 +165,20 @@
   border-radius: 12px;
   background: var(--mat-sys-surface-container);
   border: 1px solid var(--game-card-border);
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 4px;
+    bottom: 4px;
+    left: 4px;
+    width: calc((100% - 8px - (var(--cols, 4) - 1) * 6px) / var(--cols, 4));
+    border-radius: 8px;
+    background: var(--mat-sys-primary);
+    transform: translateX(calc(var(--active-index, 0) * (100% + 6px)));
+    transition: transform var(--motion-dur-fast) var(--motion-ease-out);
+    pointer-events: none;
+  }
 }
 
 .speed-selector {
@@ -162,6 +187,8 @@
 
 .progressive-toggle,
 .mode-pill {
+  position: relative;
+  z-index: 1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -171,7 +198,7 @@
   font-weight: 500;
   cursor: pointer;
   background: transparent;
-  transition: background-color 0.15s ease, color 0.15s ease;
+  transition: background-color var(--motion-dur-quick) var(--motion-ease-out), color var(--motion-dur-fast) var(--motion-ease-out);
 
   &:hover {
     background: var(--mat-sys-surface-container-highest);
@@ -217,9 +244,43 @@
   font-size: 0.85rem;
 
   &.active {
-    background: var(--mat-sys-primary);
     color: var(--mat-sys-on-primary);
     font-weight: 600;
+
+    &:hover {
+      background: transparent;
+    }
+  }
+}
+
+@keyframes stat-tick {
+  from {
+    transform: scale(1.12);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+@keyframes badge-pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.86);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes prompt-swap-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 

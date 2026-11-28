@@ -1,4 +1,4 @@
-import {ChangeDetectionStrategy, Component, DestroyRef, effect, inject, untracked} from "@angular/core";
+import {ChangeDetectionStrategy, Component, DestroyRef, computed, effect, inject, untracked} from "@angular/core";
 import {GAME_MODES, GameMode} from "../../models/game-mode.model";
 import {SPEED_PRESETS, SpeedPreset} from "../../models/speed-preset.model";
 import {DailyChallengeService} from "../../services/daily-challenge.service";
@@ -27,6 +27,12 @@ export class GameComponent {
   dailyService = inject(DailyChallengeService);
   readonly modes = GAME_MODES;
   readonly speedPresets = SPEED_PRESETS;
+  readonly activeModeIndex = computed(() =>
+    Math.max(0, this.modes.findIndex(m => m.id === this.gameService.mode()))
+  );
+  readonly activeSpeedIndex = computed(() =>
+    Math.max(0, this.speedPresets.findIndex(p => p.id === this.gameService.speedPreset()))
+  );
   readonly #soundService = inject(SoundService);
   dialog = inject(MatDialog);
   readonly #destroyRef = inject(DestroyRef);

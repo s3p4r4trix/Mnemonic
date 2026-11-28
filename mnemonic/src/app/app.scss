@@ -43,6 +43,22 @@ main {
   }
 }
 
+#theme-toggle-button app-icon,
+#mute-toggle-button app-icon {
+  animation: icon-swap-in var(--motion-dur-quick) var(--motion-ease-out);
+}
+
+@keyframes icon-swap-in {
+  from {
+    opacity: 0.4;
+    transform: scale(0.75) rotate(-12deg);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
 @media (orientation: landscape) and (max-height: 500px) {
   .app-header {
     padding: max(4px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) 4px max(16px, env(safe-area-inset-left));

@@ -179,14 +179,27 @@ body {
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
+    --motion-dur-quick: 0ms;
+    --motion-dur-fast: 0ms;
+    --motion-dur-emphasis: 0ms;
   }
 
   body,
   button,
+  .tile,
   .mode-pill,
   .progressive-toggle,
   .stats-mode-tab,
   .heatmap-cell,
+  .streak-badge,
+  .round-cleared-banner,
+  .message > span,
+  .stat-value,
+  .mode-selector::before,
+  .speed-selector::before,
+  .stats-mode-tabs::before,
+  #theme-toggle-button app-icon,
+  #mute-toggle-button app-icon,
   .mat-mdc-button-base,
   .mat-mdc-button-persistent-ripple::before,
   .mat-ripple-element {

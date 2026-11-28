@@ -19,7 +19,7 @@
   align-items: center;
   cursor: default;
   touch-action: manipulation;
-  transition: background-color 0.2s ease-in-out, transform 0.1s ease, border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+  transition: background-color var(--motion-dur-quick) var(--motion-ease-out), transform 100ms var(--motion-ease-out), border-color var(--motion-dur-quick) var(--motion-ease-out), box-shadow var(--motion-dur-quick) var(--motion-ease-out);
   box-shadow: var(--game-tile-shadow);
 }
 
@@ -91,6 +91,26 @@
   background-color: var(--game-tile-wrong-bg);
   border: 2px solid var(--game-tile-wrong-border);
   color: var(--game-tile-wrong-text);
+  animation: tile-wrong-shake var(--motion-dur-emphasis) var(--motion-ease-out);
+}
+
+@keyframes tile-wrong-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-6px);
+  }
+  45% {
+    transform: translateX(6px);
+  }
+  70% {
+    transform: translateX(-4px);
+  }
+  85% {
+    transform: translateX(3px);
+  }
 }
 
 .tile-order {
@@ -132,7 +152,8 @@
     transform: none;
   }
 
-  .tile.round-cleared {
+  .tile.round-cleared,
+  .tile.incorrect-clicked {
     animation: none;
   }
 }

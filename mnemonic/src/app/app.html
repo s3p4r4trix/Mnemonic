@@ -19,7 +19,11 @@
         [attr.title]="muteAriaLabel"
         [attr.aria-pressed]="soundService.muted()"
         (click)="toggleMute()">
-        <app-icon [name]="muteIcon" aria-hidden="true" />
+        @if (soundService.muted()) {
+          <app-icon name="volume-off" aria-hidden="true" />
+        } @else {
+          <app-icon name="volume-on" aria-hidden="true" />
+        }
       </button>
       <button
         mat-icon-button
@@ -28,7 +32,11 @@
         [attr.aria-label]="themeAriaLabel"
         [attr.title]="themeAriaLabel"
         (click)="toggleTheme()">
-        <app-icon [name]="themeIcon" aria-hidden="true" />
+        @if (currentTheme() === 'light') {
+          <app-icon name="moon" aria-hidden="true" />
+        } @else {
+          <app-icon name="sun" aria-hidden="true" />
+        }
       </button>
     </div>
   </header>

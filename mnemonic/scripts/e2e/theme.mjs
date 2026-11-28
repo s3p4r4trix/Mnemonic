@@ -49,7 +49,14 @@ export async function verifyIdleThemeContrast(cdp, expectedMode) {
       const layers = [];
       let cur = el;
       while (cur && cur.nodeType === 1) {
-        const bg = parse(getComputedStyle(cur).backgroundColor);
+        let bg = parse(getComputedStyle(cur).backgroundColor);
+        if (
+          (!bg || bg.a === 0) &&
+          cur.classList.contains('active') &&
+          cur.parentElement
+        ) {
+          bg = parse(getComputedStyle(cur.parentElement, '::before').backgroundColor);
+        }
         if (bg && bg.a > 0) layers.push(bg);
         cur = cur.parentElement;
       }
