@@ -265,17 +265,35 @@ async function main() {
     });
     await sleep(80);
     const overReducedMotion = await cdp.eval(`(() => {
+      const rootStyle = getComputedStyle(document.documentElement);
       const sels = ['body', '#theme-toggle-button', '.mode-pill', '.progressive-toggle', '.tile'];
       const out = {};
       for (const s of sels) {
         const el = document.querySelector(s);
         out[s] = el ? getComputedStyle(el).transitionDuration : null;
       }
-      return out;
+      const wrongTile = document.querySelector('button.tile.incorrect-clicked');
+      const modeSel = document.querySelector('.mode-selector');
+      const speedSel = document.querySelector('.speed-selector');
+      return {
+        durations: out,
+        tokens: {
+          quick: rootStyle.getPropertyValue('--motion-dur-quick').trim(),
+          fast: rootStyle.getPropertyValue('--motion-dur-fast').trim(),
+          emphasis: rootStyle.getPropertyValue('--motion-dur-emphasis').trim(),
+        },
+        wrongTileAnimation: wrongTile ? getComputedStyle(wrongTile).animationName : null,
+        modeIndicatorTransition: modeSel ? getComputedStyle(modeSel, '::before').transitionDuration : null,
+        speedIndicatorTransition: speedSel ? getComputedStyle(speedSel, '::before').transitionDuration : null,
+      };
     })()`);
-    for (const [sel, dur] of Object.entries(overReducedMotion)) {
+    for (const [sel, dur] of Object.entries(overReducedMotion.durations)) {
       assert.equal(dur, '0s', `Expected 0s transitionDuration on ${sel} under reduced motion, got ${dur}`);
     }
+    assert.deepEqual(overReducedMotion.tokens, { quick: '0ms', fast: '0ms', emphasis: '0ms' });
+    assert.equal(overReducedMotion.wrongTileAnimation, 'none');
+    assert.equal(overReducedMotion.modeIndicatorTransition, '0s');
+    assert.equal(overReducedMotion.speedIndicatorTransition, '0s');
     await cdp.send('Emulation.setEmulatedMedia', { features: [] });
 
     const hudAfterGameOver = await cdp.eval(`document.querySelector('.stats')?.innerText?.replace(/\\s+/g, ' ').trim()`);

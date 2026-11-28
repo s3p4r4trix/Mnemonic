@@ -261,6 +261,7 @@ export async function verifyDailyChallengeAndReducedMotion(cdp, screenshotsDir) 
   });
   await sleep(100);
   const reducedMotionProbe = await cdp.eval(`(() => {
+    const rootStyle = getComputedStyle(document.documentElement);
     const selectors = ['body', '#theme-toggle-button', '.stats-mode-tab', '.tile'];
     const durations = {};
     for (const sel of selectors) {
@@ -268,17 +269,31 @@ export async function verifyDailyChallengeAndReducedMotion(cdp, screenshotsDir) 
       durations[sel] = el ? getComputedStyle(el).transitionDuration : null;
     }
     const tile = document.querySelector('.tile');
+    const streak = document.querySelector('.streak-badge');
+    const tabs = document.querySelector('.stats-mode-tabs');
     return {
       matches: matchMedia('(prefers-reduced-motion: reduce)').matches,
       durations,
+      tokens: {
+        quick: rootStyle.getPropertyValue('--motion-dur-quick').trim(),
+        fast: rootStyle.getPropertyValue('--motion-dur-fast').trim(),
+        emphasis: rootStyle.getPropertyValue('--motion-dur-emphasis').trim(),
+      },
       tileAnimation: tile ? getComputedStyle(tile).animationName : null,
+      streakAnimation: streak ? getComputedStyle(streak).animationName : null,
+      tabsIndicatorTransition: tabs ? getComputedStyle(tabs, '::before').transitionDuration : null,
     };
   })()`);
   assert.equal(reducedMotionProbe.matches, true);
   for (const [sel, dur] of Object.entries(reducedMotionProbe.durations)) {
     assert.equal(dur, '0s', `Expected 0s transitionDuration on ${sel} under reduced motion, got ${dur}`);
   }
+  assert.deepEqual(reducedMotionProbe.tokens, { quick: '0ms', fast: '0ms', emphasis: '0ms' });
   assert.equal(reducedMotionProbe.tileAnimation, 'none');
+  if (reducedMotionProbe.streakAnimation !== null) {
+    assert.equal(reducedMotionProbe.streakAnimation, 'none');
+  }
+  assert.equal(reducedMotionProbe.tabsIndicatorTransition, '0s');
 
   // Close Stats dialog under reduced motion and reset emulated media
   await cdp.eval(

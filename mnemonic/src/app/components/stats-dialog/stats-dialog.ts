@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, ElementRef, computed, effect, inject, signal } from "@angular/core";
+import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, computed, effect, inject, signal } from "@angular/core";
 import { DatePipe } from "@angular/common";
 import { MatButtonModule } from "@angular/material/button";
 import { MatDialogModule, MatDialogRef } from "@angular/material/dialog";
@@ -26,6 +26,7 @@ export class StatsDialogComponent {
   readonly #gameService = inject(GameService);
   readonly #dialogRef = inject(MatDialogRef<StatsDialogComponent>);
   readonly #hostEl = inject<ElementRef<HTMLElement>>(ElementRef);
+  readonly #destroyRef = inject(DestroyRef);
 
   readonly modes = GAME_MODES;
   readonly selectedTab = signal<StatsTab>(
@@ -66,14 +67,33 @@ export class StatsDialogComponent {
 
   constructor() {
     this.dailyService.refreshToday();
+    let resizeObserver: ResizeObserver | null = null;
     effect(() => {
       this.selectedTab();
       queueMicrotask(() => {
-        this.#hostEl.nativeElement
-          .querySelector<HTMLElement>(".stats-mode-tab.active")
-          ?.scrollIntoView({ inline: "nearest", block: "nearest" });
+        const tabsEl = this.#hostEl.nativeElement.querySelector<HTMLElement>(".stats-mode-tabs");
+        if (!tabsEl) return;
+        if (!resizeObserver && typeof ResizeObserver !== "undefined") {
+          resizeObserver = new ResizeObserver(() => this.#syncTabIndicator(tabsEl, false));
+          resizeObserver.observe(tabsEl);
+        }
+        this.#syncTabIndicator(tabsEl, true);
       });
     });
+    this.#destroyRef.onDestroy(() => resizeObserver?.disconnect());
+  }
+
+  #syncTabIndicator(tabsEl: HTMLElement, scrollIntoView: boolean): void {
+    const activeTab = tabsEl.querySelector<HTMLElement>(".stats-mode-tab.active");
+    if (!activeTab) return;
+    if (activeTab.offsetWidth > 0) {
+      tabsEl.style.setProperty("--tab-indicator-x", `${activeTab.offsetLeft}px`);
+      tabsEl.style.setProperty("--tab-indicator-w", `${activeTab.offsetWidth}px`);
+      tabsEl.classList.add("has-indicator");
+    }
+    if (scrollIntoView) {
+      activeTab.scrollIntoView({ inline: "nearest", block: "nearest" });
+    }
   }
 
   readonly orderAccuracyPercent = computed<number | null>(() => {

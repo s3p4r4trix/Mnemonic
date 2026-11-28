@@ -4,7 +4,6 @@ import {MatIconButton} from '@angular/material/button';
 import {MatDialog, MatDialogModule} from '@angular/material/dialog';
 import {GameComponent} from './components/game/game';
 import {IconComponent} from './components/icon/icon';
-import {IconName} from './components/icon/icon-registry';
 import {StatsDialogComponent} from './components/stats-dialog/stats-dialog';
 import {SoundService} from './services/sound.service';
 
@@ -91,15 +90,7 @@ export class App implements OnInit {
     return this.soundService.muted() ? 'Unmute sound' : 'Mute sound';
   }
 
-  get muteIcon(): IconName {
-    return this.soundService.muted() ? 'volume-off' : 'volume-on';
-  }
-
   get themeAriaLabel(): string {
     return this.currentTheme() === 'light' ? 'Switch to dark mode' : 'Switch to light mode';
-  }
-
-  get themeIcon(): IconName {
-    return this.currentTheme() === 'light' ? 'moon' : 'sun';
   }
 }

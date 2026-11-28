@@ -31,15 +31,32 @@
 }
 
 .stats-mode-tabs {
+  position: relative;
   display: flex;
   gap: 4px;
   padding: 4px;
   overflow-x: auto;
   overscroll-behavior-x: contain;
   scroll-snap-type: x proximity;
+
+  &.has-indicator::before {
+    content: '';
+    position: absolute;
+    top: 4px;
+    bottom: 4px;
+    left: 0;
+    width: var(--tab-indicator-w, 0px);
+    border-radius: 7px;
+    background: var(--mat-sys-primary);
+    transform: translateX(var(--tab-indicator-x, 0px));
+    transition: transform var(--motion-dur-fast) var(--motion-ease-out), width var(--motion-dur-fast) var(--motion-ease-out);
+    pointer-events: none;
+  }
 }
 
 .stats-mode-tab {
+  position: relative;
+  z-index: 1;
   flex: 1 0 auto;
   min-width: 44px;
   min-height: 44px;
@@ -53,11 +70,15 @@
   white-space: nowrap;
   scroll-snap-align: start;
   background: transparent;
+  transition: color var(--motion-dur-fast) var(--motion-ease-out);
 
   &.active {
-    background: var(--mat-sys-primary);
     color: var(--mat-sys-on-primary);
     font-weight: 600;
+  }
+
+  .stats-mode-tabs:not(.has-indicator) &.active {
+    background: var(--mat-sys-primary);
   }
 
   &:focus-visible {

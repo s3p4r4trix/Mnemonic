@@ -256,4 +256,22 @@ describe("StatsDialogComponent", () => {
     fixture.detectChanges();
     expect(host.querySelector('#stats-copy-daily-button app-icon[data-icon="check"] svg')).not.toBeNull();
   });
+
+  it("should position the sliding tab indicator on .stats-mode-tabs when switching tabs", async () => {
+    await Promise.resolve();
+    const host = fixture.nativeElement as HTMLElement;
+    const tabsEl = host.querySelector(".stats-mode-tabs") as HTMLElement;
+    expect(tabsEl.classList.contains("has-indicator")).toBeTrue();
+    const initialW = parseFloat(tabsEl.style.getPropertyValue("--tab-indicator-w"));
+    expect(initialW).toBeGreaterThan(0);
+
+    component.selectTab("daily");
+    fixture.detectChanges();
+    await Promise.resolve();
+
+    const dailyX = parseFloat(tabsEl.style.getPropertyValue("--tab-indicator-x"));
+    const dailyW = parseFloat(tabsEl.style.getPropertyValue("--tab-indicator-w"));
+    expect(dailyX).toBeGreaterThan(0);
+    expect(dailyW).toBeGreaterThan(0);
+  });
 });
